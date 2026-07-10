@@ -32,6 +32,6 @@ ROLE_ADMIN — 	дополнительно: удаление данных, сб�
 - Spring 	Security в каждом микросервисе валидирует 	подпись токена через JWKS-эндпоинт 	Keycloak.
 - Роли 	из токена сопоставляются с требованиями к эндпоинту
 
-<img width="744" height="520" alt="logicDBdiagram" src="https://github.com/user-attachments/assets/1e41614e-77d2-4e22-a5ba-b7f9c97787d6" />
+<img width="744" height="465" alt="logicDBdiagram" src="https://github.com/user-attachments/assets/29613f04-0319-461f-8a49-b01da2634e09" />
 
 
