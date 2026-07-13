@@ -35,17 +35,17 @@ ROLE_ADMIN — 	дополнительно: удаление данных, сб�
 - Spring 	Security в каждом микросервисе валидирует подпись токена через JWKS-эндпоинт 	Keycloak.
 - Роли 	из токена сопоставляются с требованиями к эндпоинту
 
-Эндпоинт 1 — Загрузка пакета отзывов
+- Эндпоинт 1 — Загрузка пакета отзывов
 Сервис использует JsonReader или TextReader из Spring AI для чтения файла без ручного парсинга, разбивает документы на чанки и асинхронно индексирует эмбеддинги в pgvector.
-Эндпоинт 2 — Получение списка отзывов; POST /api/v1/reviews/batch
-Эндпоинт 3 — Запуск анализа (создание задания); POST /api/v1/analysis/jobs
-Эндпоинт 4 — Опрос статуса задания; GET /api/v1/analysis/jobs/{taskId}/status
-Эндпоинт 5 — Получение результата анализа; GET /api/v1/analysis/jobs/{taskId}/result
-Эндпоинт 6 — Удаление отзывов; DELETE /api/v1/reviews?brand=Samsung&before=2024-01-01
-Эндпоинт 7 — Семантический поиск по отзывам; POST /api/v1/reviews/search
-Эндпоинт 8 — Мониторинг расхода токенов; GET /api/v1/admin/tokens/usage?from=2024-06-01&to=2024-06-30
-Эндпоинт 9 — Сброс кэша эмбеддингов; POST /api/v1/admin/cache/reset
-Эндпоинт 10 — Проверка состояния системы. GET /api/v1/admin/health
+- Эндпоинт 2 — Получение списка отзывов; POST /api/v1/reviews/batch
+- Эндпоинт 3 — Запуск анализа (создание задания); POST /api/v1/analysis/jobs
+- Эндпоинт 4 — Опрос статуса задания; GET /api/v1/analysis/jobs/{taskId}/status
+- Эндпоинт 5 — Получение результата анализа; GET /api/v1/analysis/jobs/{taskId}/result
+- Эндпоинт 6 — Удаление отзывов; DELETE /api/v1/reviews?brand=Samsung&before=2024-01-01
+- Эндпоинт 7 — Семантический поиск по отзывам; POST /api/v1/reviews/search
+- Эндпоинт 8 — Мониторинг расхода токенов; GET /api/v1/admin/tokens/usage?from=2024-06-01&to=2024-06-30
+- Эндпоинт 9 — Сброс кэша эмбеддингов; POST /api/v1/admin/cache/reset
+- Эндпоинт 10 — Проверка состояния системы. GET /api/v1/admin/health
 
 
 <img width="744" height="465" alt="logicDBdiagram" src="https://github.com/user-attachments/assets/29613f04-0319-461f-8a49-b01da2634e09" />
