@@ -42,7 +42,7 @@ ROLE_ADMIN — 	дополнительно: удаление данных, сб�
 - Роли 	из токена сопоставляются с требованиями к эндпоинту
 
 схема БД для этого микросервиса:
-<img width="958" height="665" alt="Screenshot 2026-07-16 144827" src="https://github.com/user-attachments/assets/b1121db1-05cb-494d-9210-f55697a4b5aa" />
+<img width="1071" height="686" alt="Screenshot 2026-07-21 162039" src="https://github.com/user-attachments/assets/a98f23c0-9b8f-455a-b851-b6f68c683aca" />
 
 - Эндпоинт 1 — Загрузка пакета отзывов
 Сервис использует JsonReader или TextReader из Spring AI для чтения файла без ручного парсинга, разбивает документы на чанки и асинхронно индексирует эмбеддинги в pgvector.
