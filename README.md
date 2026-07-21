@@ -15,7 +15,7 @@ Review Service отвечает за управление жизненным ц�
 - Семантический поиск по запросу
 
 схема БД для этого микросервиса:
-<img width="1112" height="685" alt="Screenshot 2026-07-16 144800" src="https://github.com/user-attachments/assets/97566515-3a17-4f4b-b584-8a1e1ef7bfbe" />
+<img width="1154" height="676" alt="Screenshot 2026-07-21 173827" src="https://github.com/user-attachments/assets/33df8b56-f36e-4bb7-9c0d-f91cf366033c" />
 
 Analysis Service реализует бизнес-логику генерации аналитических отчётов. Сервис не хранит отзывы — он обращается к VectorStore для получения релевантного контекста и передаёт его в LLM.
 
