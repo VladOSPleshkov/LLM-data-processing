@@ -26,7 +26,7 @@ Analysis Service реализует бизнес-логику генерации
 - Мониторинг расхода токенов
 
 схема БД для этого микросервиса:
-<img width="405" height="720" alt="Screenshot 2026-07-16 144726" src="https://github.com/user-attachments/assets/966f2abd-0b93-4100-9bde-d2b1f88d0b3c" />
+<img width="388" height="721" alt="Screenshot 2026-07-21 171110" src="https://github.com/user-attachments/assets/a90506f0-c0b9-4dfb-be90-a11f6eb4dffd" />
 
 Auth Service
 
