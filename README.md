@@ -15,7 +15,7 @@ Review Service отвечает за управление жизненным ц�
 - Семантический поиск по запросу
 
 схема БД для этого микросервиса:
-<img width="1112" height="685" alt="Screenshot 2026-07-16 144800" src="https://github.com/user-attachments/assets/97566515-3a17-4f4b-b584-8a1e1ef7bfbe" />
+<img width="1049" height="651" alt="Screenshot 2026-07-21 232843" src="https://github.com/user-attachments/assets/b601ac5f-4e99-4f9c-b4e3-b0ff6c051fab" />
 
 Analysis Service реализует бизнес-логику генерации аналитических отчётов. Сервис не хранит отзывы — он обращается к VectorStore для получения релевантного контекста и передаёт его в LLM.
 
@@ -26,7 +26,7 @@ Analysis Service реализует бизнес-логику генерации
 - Мониторинг расхода токенов
 
 схема БД для этого микросервиса:
-<img width="405" height="720" alt="Screenshot 2026-07-16 144726" src="https://github.com/user-attachments/assets/966f2abd-0b93-4100-9bde-d2b1f88d0b3c" />
+<img width="388" height="721" alt="Screenshot 2026-07-21 171110" src="https://github.com/user-attachments/assets/a90506f0-c0b9-4dfb-be90-a11f6eb4dffd" />
 
 Auth Service
 
@@ -42,7 +42,7 @@ ROLE_ADMIN — 	дополнительно: удаление данных, сб�
 - Роли 	из токена сопоставляются с требованиями к эндпоинту
 
 схема БД для этого микросервиса:
-<img width="958" height="665" alt="Screenshot 2026-07-16 144827" src="https://github.com/user-attachments/assets/b1121db1-05cb-494d-9210-f55697a4b5aa" />
+<img width="1071" height="686" alt="Screenshot 2026-07-21 162039" src="https://github.com/user-attachments/assets/a98f23c0-9b8f-455a-b851-b6f68c683aca" />
 
 - Эндпоинт 1 — Загрузка пакета отзывов
 Сервис использует JsonReader или TextReader из Spring AI для чтения файла без ручного парсинга, разбивает документы на чанки и асинхронно индексирует эмбеддинги в pgvector.
