@@ -7,10 +7,7 @@ import java.util.List;
 public class Main {
 
     // корневые пакеты подключённых микросервисных модулей
-    private static final List<String> MODULE_PACKAGES = List.of(
-            "auth",
-            "review",
-            "analysis"
+    private static final List<String> MODULE_PACKAGES = List.of("auth", "review", "analysis"
     );
 
     public static void main(String[] args) {
@@ -26,7 +23,7 @@ public class Main {
 
         System.out.println("\n=== Вызов контроллеров модулей ===");
 
-        // запрашиваем у контейнера все контроллеры и вызываем execute()
+        // запрашиваем у контейнера все контроллеры
         List<Controller> controllers = container.getBeansOfType(Controller.class);
 
         for (Controller controller : controllers) {

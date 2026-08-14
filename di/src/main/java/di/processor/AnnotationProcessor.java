@@ -227,7 +227,7 @@ public class AnnotationProcessor {
         if (candidates.size() > 1) {
             throw new RuntimeException(
                     "Несколько реализаций " + iface.getName()
-                            + " — используйте @Qualifier: " + candidates);
+                            + " - используй @Qualifier: " + candidates);
         }
         return candidates.get(0);
     }
@@ -250,7 +250,8 @@ public class AnnotationProcessor {
                 }
             }
         } catch (IOException e) {
-            System.err.println("Ошибка загрузки .env: " + e.getMessage());
+            System.err.println("Ошибка загрузки " +
+                    ".env: " + e.getMessage());
         }
     }
 

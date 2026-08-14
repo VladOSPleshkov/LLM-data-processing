@@ -13,7 +13,7 @@ public class AnalysisService implements Service {
 
     @Autowire
     public void setDatabase(
-            @Qualifier("analysisDatabase") Repository database) {
+            @Qualifier("analysisRepository") Repository database) {
         this.database = database;
     }
 
