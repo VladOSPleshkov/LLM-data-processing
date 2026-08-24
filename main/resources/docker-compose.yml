@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+
+  # ==================== AUTH ====================
+
+  auth-postgres:
+    image: postgres:16
+    container_name: auth-postgres
+    environment:
+      POSTGRES_DB: ${AUTH_DB_NAME}
+      POSTGRES_USER: ${AUTH_DB_USER}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASS}
+    ports:
+      - "${AUTH_DB_PORT}:5432"
+    volumes:
+      - auth-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_DB_USER} -d ${AUTH_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth-liquibase:
+    image: liquibase/liquibase:4.25.1
+    container_name: auth-liquibase
+    depends_on:
+      auth-postgres:
+        condition: service_healthy
+    volumes:
+      - .:/liquibase/changelog
+    command: >
+      --driver=org.postgresql.Driver
+      --url=jdbc:postgresql://auth-postgres:5432/${AUTH_DB_NAME}
+      --username=${AUTH_DB_USER}
+      --password=${AUTH_DB_PASS}
+      --changeLogFile=changelogs/homework-2/auth_service/changelog-auth.xml
+      --searchPath=/liquibase/changelog
+      update
+
+  # ==================== REVIEW ====================
+
+  review-postgres:
+    image: pgvector/pgvector:pg16
+    container_name: review-postgres
+    environment:
+      POSTGRES_DB: ${REVIEW_DB_NAME}
+      POSTGRES_USER: ${REVIEW_DB_USER}
+      POSTGRES_PASSWORD: ${REVIEW_DB_PASS}
+    ports:
+      - "${REVIEW_DB_PORT}:5432"
+    volumes:
+      - review-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${REVIEW_DB_USER} -d ${REVIEW_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  review-liquibase:
+    image: liquibase/liquibase:4.25.1
+    container_name: review-liquibase
+    depends_on:
+      review-postgres:
+        condition: service_healthy
+    volumes:
+      - .:/liquibase/changelog
+    command: >
+      --driver=org.postgresql.Driver
+      --url=jdbc:postgresql://review-postgres:5432/${REVIEW_DB_NAME}
+      --username=${REVIEW_DB_USER}
+      --password=${REVIEW_DB_PASS}
+      --changeLogFile=changelogs/homework-2/review_service/changelog-review.xml
+      --searchPath=/liquibase/changelog
+      update
+
+  # ==================== ANALYSIS ====================
+
+  analysis-postgres:
+    image: postgres:16
+    container_name: analysis-postgres
+    environment:
+      POSTGRES_DB: ${ANALYSIS_DB_NAME}
+      POSTGRES_USER: ${ANALYSIS_DB_USER}
+      POSTGRES_PASSWORD: ${ANALYSIS_DB_PASS}
+    ports:
+      - "${ANALYSIS_DB_PORT}:5432"
+    volumes:
+      - analysis-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ANALYSIS_DB_USER} -d ${ANALYSIS_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  analysis-liquibase:
+    image: liquibase/liquibase:4.25.1
+    container_name: analysis-liquibase
+    depends_on:
+      analysis-postgres:
+        condition: service_healthy
+    volumes:
+      - .:/liquibase/changelog
+    command: >
+      --driver=org.postgresql.Driver
+      --url=jdbc:postgresql://analysis-postgres:5432/${ANALYSIS_DB_NAME}
+      --username=${ANALYSIS_DB_USER}
+      --password=${ANALYSIS_DB_PASS}
+      --changeLogFile=changelogs/homework-2/analysis_service/changelog-analysis.xml
+      --searchPath=/liquibase/changelog
+      update
+
+volumes:
+  auth-postgres-data:
+  review-postgres-data:
+  analysis-postgres-data:
