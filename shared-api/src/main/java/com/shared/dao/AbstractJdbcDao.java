@@ -39,7 +39,7 @@ public class AbstractJdbcDao {
             failed = true;
             throw new RuntimeException(e);
         } finally {
-            if (connection != null && partOfExternalTransaction) {
+            if (connection != null && !partOfExternalTransaction) {
                 try {
                     connectionHolder.releaseConnection(dbKey, connection, failed);
                 } catch (SQLException e) {

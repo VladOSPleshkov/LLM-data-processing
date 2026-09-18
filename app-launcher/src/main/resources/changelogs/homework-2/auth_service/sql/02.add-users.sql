@@ -1,6 +1,5 @@
-INSERT INTO users (id, keycloak_sub, username, email,
+INSERT INTO users (id, password_hash, username, email,
                    registered_at) VALUES
-
     ('e1000000-0000-0000-0000-000000000001',
      'kcsubj-0001-0001-0001-000000000001',
      'ivan.petrov',

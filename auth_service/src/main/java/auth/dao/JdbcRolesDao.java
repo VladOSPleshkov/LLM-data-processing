@@ -25,7 +25,7 @@ public class JdbcRolesDao extends AbstractJdbcDao implements IRolesDao {
     private MapSqlParameterSource getParamSource(Roles role) {
         return new MapSqlParameterSource()
                 .addValue("id", role.getId().toString())
-                .addValue("name", role.getName())
+                .addValue("name", role.getName().getValue())
                 .addValue("description", role.getDescription());
     }
 

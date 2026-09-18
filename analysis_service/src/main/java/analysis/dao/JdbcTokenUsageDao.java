@@ -38,7 +38,7 @@ public class JdbcTokenUsageDao extends AbstractJdbcDao implements ITokenUsageDao
         UUID id = usage.getId() != null ? usage.getId() : UUID.randomUUID();
         TokenUsage toPersist = usage.toBuilder().id(id).build();
         String sql = """
-                INSERT INTO token_usage (tasks_id, tokens_count, model_name, created_at)
+                INSERT INTO token_usage (task_id, token_count, model_name, created_at)
                 VALUES (:tasksId, :tokensCount, :modelName, :createdAt)
                 """;
 
@@ -83,7 +83,7 @@ public class JdbcTokenUsageDao extends AbstractJdbcDao implements ITokenUsageDao
     public TokenUsage update(TokenUsage usage) {
         String sql = """
                 UPDATE token_usage 
-                SET tasks_id = :tasksId, tokens_count = :tokensCount, model_name = :modelName, created_at = :createdAt
+                SET task_id = :taskId, token_count = :tokenCount, model_name = :modelName, created_at = :createdAt
                 WHERE id = :id
                 """;
         execute(true, template -> template.update(sql, getParamSource(usage)));
@@ -109,7 +109,7 @@ public class JdbcTokenUsageDao extends AbstractJdbcDao implements ITokenUsageDao
     private MapSqlParameterSource getParamSource(TokenUsage usage) {
         return new MapSqlParameterSource()
                 .addValue("id", usage.getId())
-                .addValue("tasksId", usage.getTasksId())
+                .addValue("taskId", usage.getTasksId())
                 .addValue("ResponseTokens", usage.getResponseTokens())
                 .addValue("modelName", usage.getModelName())
                 .addValue("recorderedAt", usage.getRecorderedAt());

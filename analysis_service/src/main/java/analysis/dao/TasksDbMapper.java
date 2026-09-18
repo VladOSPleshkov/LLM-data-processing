@@ -17,8 +17,8 @@ public class TasksDbMapper {
     public Tasks fromResultSet(ResultSet rs) throws SQLException {
         Timestamp completedAt = rs.getTimestamp("completed_at");
         return Tasks.builder()
-                .id(UUID.fromString(rs.getString("id")))
-                .brandId(rs.get("brand_id"))
+                .id(rs.getObject("id", UUID.class))
+                .brandId(rs.getObject("brand_id", UUID.class))
                 .brandName(rs.getString("brand_name"))
                 .query(rs.getString("query"))
                 .status(Status.valueOf(rs.getString("status")))
@@ -34,7 +34,7 @@ public class TasksDbMapper {
 
     public TokenUsage tokenUsageFromResultSet(ResultSet rs) throws SQLException {
         return TokenUsage.builder()
-                .id(UUID.fromString(rs.getString("id")))
+                .id(rs.getObject("id", UUID.class))
                 .tasksId(UUID.fromString(rs.getString("tasks_id")))
                 .promptTokens(rs.getLong("prompt_tokens"))
                 .responseTokens(rs.getLong("response_tokens"))

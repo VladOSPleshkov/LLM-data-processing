@@ -42,6 +42,8 @@ public class TransactionAspect {
                 connectionHolder.releaseConnection(dbKey, connection, rollBack);
             } catch (SQLException sqlException) {
                 System.out.println("не удалось завершить транзакцию" + dbKey + sqlException);
+            } finally {
+                TransactionContext.end();
             }
         }
     }

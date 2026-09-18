@@ -25,6 +25,21 @@ public class JdbcTasksDao extends AbstractJdbcDao implements ITasksDao {
         super(connectionHolder, DB_KEY);
         this.tasksDbMapper = tasksDbMapper;
     }
+    private MapSqlParameterSource getParamSource(Tasks task) {
+        return new MapSqlParameterSource()
+                .addValue("id", task.getId())
+                .addValue("brandId", task.getBrandId())
+                .addValue("brandName", task.getBrandName())
+                .addValue("query", task.getQuery())
+                .addValue("status", task.getStatus())
+                .addValue("result", task.getResult())
+                .addValue("createdAt", task.getCreatedAt())
+                .addValue("completedAt", task.getCompletedAt())
+                .addValue("errorMessage", task.getErrorMessage())
+                .addValue("updatedAt", task.getUpdatedAt())
+                .addValue("topK", task.getTopK())
+                .addValue("tokenUsed", task.getTokenUsed());
+    }
 
     @Override
     public Tasks save(Tasks task) {
@@ -85,20 +100,5 @@ public class JdbcTasksDao extends AbstractJdbcDao implements ITasksDao {
          */
         private NamedParameterJdbcTemplate createTemplateForConnection(Connection conn) {
             return new NamedParameterJdbcTemplate(new SingleConnectionDataSource(conn, true));
-        }
-        private MapSqlParameterSource getParamSource(Tasks task) {
-            return new MapSqlParameterSource()
-                    .addValue("id", task.getId())
-                    .addValue("brandId", task.getBrandId())
-                    .addValue("brandName", task.getBrandName())
-                    .addValue("query", task.getQuery())
-                    .addValue("status", task.getStatus())
-                    .addValue("result", task.getResult())
-                    .addValue("createdAt", task.getCreatedAt())
-                    .addValue("completedAt", task.getCompletedAt())
-                    .addValue("errorMessage", task.getErrorMessage())
-                    .addValue("updatedAt", task.getUpdatedAt())
-                    .addValue("topK", task.getTopK())
-                    .addValue("tokenUsed", task.getTokenUsed());
         }
 }

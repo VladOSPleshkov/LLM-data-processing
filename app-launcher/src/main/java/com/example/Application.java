@@ -51,12 +51,13 @@ import analysis.controller.TasksController;
 import auth.controller.RolesController;
 import auth.controller.TokenBlacklistController;
 import auth.controller.UserController;
+import test.ConcurrencyTestRunner;
 
 import javax.sql.DataSource;
 
 
 @Configuration
-@ComponentScan({"auth", "analysis", "review"})
+@ComponentScan({"auth", "analysis", "review", "com.shared"})
 @EnableAspectJAutoProxy
 @PropertySources({
         @PropertySource(value = "classpath:auth_app.properties", ignoreResourceNotFound = true),
@@ -239,6 +240,7 @@ private String analysisUrl;
         String user1Json = userController.processCreate(
                 new CreateUserRequest("alice", "keycloak-sub-alice", "alice@example.com", adminRoles));
         System.out.println(user1Json);
+        ConcurrencyTestRunner.runUsersConcurrencyTest(userController, 10);
         UUID user1Id = extractUuidId(mapper, user1Json);
 
         String user2Json = userController.processCreate(
@@ -385,6 +387,7 @@ private String analysisUrl;
 
         System.out.println("--- READ task #1 again ---");
         System.out.println(tasksController.processGetById(task1Id));
+        ConcurrencyTestRunner.runTasksConcurrencyTest(tasksController, 10);
 
         //System.out.println("--- Полный RAG-конвейер (доп. вариант использования сервиса) ---");
         //System.out.println(tasksController.processStartAnalysis(
