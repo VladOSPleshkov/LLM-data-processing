@@ -188,11 +188,6 @@ private String analysisUrl;
     public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
         return new PropertySourcesPlaceholderConfigurer();
     }
-    private static Long extractLongId(ObjectMapper mapper, String json) throws Exception {
-        JsonNode node = mapper.readTree(json);
-        return node.get("id").asLong();
-    }
-
     private static UUID extractUuidId(ObjectMapper mapper, String json) throws Exception {
         JsonNode node = mapper.readTree(json);
         return UUID.fromString(node.get("id").asText());
@@ -215,6 +210,9 @@ private String analysisUrl;
         String role1Json = rolesController.processCreate(new CreateRoleRequest("ADMIN", "Полный доступ к системе"));
         System.out.println("--- CREATE role #1 (ADMIN) ---\n" + role1Json);
         UUID role1Id = UUID.fromString(mapper.readTree(role1Json).get("id").asText());
+
+        //String getRoleJson = rolesController.processGetById(role1Id);
+        //System.out.println("Найденная роль: " + getRoleJson);
 
         String role2Json = rolesController.processCreate(new CreateRoleRequest("USER", "Обычный пользователь"));
         System.out.println("--- CREATE role #2 (USER) ---\n" + role2Json);

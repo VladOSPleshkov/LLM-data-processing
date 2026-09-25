@@ -8,6 +8,7 @@ import com.shared.tx.ConnectionHolder;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.stereotype.Repository;
 
+import java.sql.Types;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,7 +29,7 @@ public class JdbcUserDao extends AbstractJdbcDao implements IUserDao {
     }
     private MapSqlParameterSource getParamSource(User user) {
         return new MapSqlParameterSource()
-                .addValue("id", user.getId().toString())
+                .addValue("id", user.getId(), Types.OTHER)
                 .addValue("passwordHash", user.getPasswordHash())
                 .addValue("username", user.getUsername())
                 .addValue("email", user.getEmail())
@@ -52,7 +53,7 @@ public class JdbcUserDao extends AbstractJdbcDao implements IUserDao {
     public Optional<User> findById(UUID id) {
         String sql = "SELECT * FROM users WHERE id = :id";
         List<User> results = execute(false, template ->
-                template.query(sql, Map.of("id", id.toString()), (rs, rowNum) -> authDbMapper.userFromResultSet(rs)));
+                template.query(sql, Map.of("id", id), (rs, rowNum) -> authDbMapper.userFromResultSet(rs)));
         return results.stream().findFirst();
     }
 
@@ -89,7 +90,7 @@ public class JdbcUserDao extends AbstractJdbcDao implements IUserDao {
     @Override
     public boolean deleteById(UUID id) {
         String sql = "DELETE FROM users WHERE id = :id";
-        int rows = execute(true, template -> template.update(sql, Map.of("id", id.toString())));
+        int rows = execute(true, template -> template.update(sql, Map.of("id", id)));
         return rows > 0;
     }
 

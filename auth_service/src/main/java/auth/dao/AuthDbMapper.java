@@ -15,7 +15,8 @@ public class AuthDbMapper {
 
     public User userFromResultSet(ResultSet rs) throws SQLException {
         return User.builder()
-                .id(UUID.fromString(rs.getString("id")))
+                .id(rs.getObject("id", UUID.class))
+                //id(UUID.fromString(rs.getString("id")))
                 .passwordHash(rs.getString("password_hash"))
                 .username(rs.getString("username"))
                 .email(rs.getString("email"))
@@ -25,15 +26,15 @@ public class AuthDbMapper {
 
     public Roles roleFromResultSet(ResultSet rs) throws SQLException {
         return Roles.builder()
-                .id(UUID.fromString(rs.getString("id")))
-                .name(RoleNames.valueOf(rs.getString("name")))
+                .id(rs.getObject("id", UUID.class))
+                .name(RoleNames.fromValue(rs.getString("name")))
                 .description(rs.getString("description"))
                 .build();
     }
 
     public RefreshTokenBlacklist blacklistFromResultSet(ResultSet rs) throws SQLException {
         return RefreshTokenBlacklist.builder()
-                .id(UUID.fromString(rs.getString("id")))
+                .id(rs.getObject("id", UUID.class))
                 .token(rs.getString("token"))
                 .userId(UUID.fromString(rs.getString("user_id")))
                 .blacklistedAt(rs.getTimestamp("blacklisted_at").toLocalDateTime())

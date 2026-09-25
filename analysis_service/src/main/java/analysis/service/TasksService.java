@@ -92,7 +92,7 @@ public class TasksService implements ITasksService {
                 .brandId(request.brandId())
                 .brandName(request.brandName())
                 .query(request.query())
-                .status(Status.IN_PROGRESS)
+                .status(Status.PROCESSING)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .topK(request.topK())

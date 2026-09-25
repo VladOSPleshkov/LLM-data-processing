@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Arrays;
-import java.util.UUID;
 
 @Getter
 @RequiredArgsConstructor
@@ -19,4 +18,10 @@ public enum RoleNames {
     public Object getId() {
         return value;
     }
+
+    public static RoleNames fromValue(String text) {
+        if (text == null) return null;
+        return Arrays.stream(values())
+                .filter(r -> r.name().equalsIgnoreCase(text) || r.getValue().equalsIgnoreCase(text))
+        .findFirst().orElseThrow(() -> new IllegalArgumentException("Неизвестная роль: " + text)); }
 }

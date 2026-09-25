@@ -12,7 +12,7 @@ import java.util.UUID;
 @NoArgsConstructor(force = true)
 public class UserRole {
     private final UUID userId;
-    private final RoleNames role;         // Ссылка на сам объект Role
+    private final RoleNames role;
     private final LocalDateTime assignedAt;
     private final UUID assignedBy;    // FK на того, кто выдал роль
 
@@ -28,5 +28,4 @@ public class UserRole {
     public int hashCode() {
         return Objects.hash(userId, role != null ? role.getId() : null);
     }
-
 }

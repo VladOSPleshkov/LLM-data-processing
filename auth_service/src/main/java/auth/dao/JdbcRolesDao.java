@@ -8,10 +8,8 @@ import com.shared.tx.ConnectionHolder;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.stereotype.Repository;
 
+import java.sql.Types;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-
 @Repository("rolesDao")
 public class JdbcRolesDao extends AbstractJdbcDao implements IRolesDao {
 
@@ -24,7 +22,7 @@ public class JdbcRolesDao extends AbstractJdbcDao implements IRolesDao {
     }
     private MapSqlParameterSource getParamSource(Roles role) {
         return new MapSqlParameterSource()
-                .addValue("id", role.getId().toString())
+                .addValue("id", role.getId(), Types.OTHER)
                 .addValue("name", role.getName().getValue())
                 .addValue("description", role.getDescription());
     }
@@ -34,16 +32,18 @@ public class JdbcRolesDao extends AbstractJdbcDao implements IRolesDao {
         UUID id = role.getId() != null ? role.getId() : UUID.randomUUID();
         Roles toPersist = role.toBuilder().id(id).build();
 
-        String sql = "INSERT INTO roles (id, name, description) VALUES (:id, :name, :description)";
-        execute(true, template -> template.update(sql, getParamSource(toPersist)));
-        return toPersist;
+        String sql = "INSERT INTO roles (id, name, description) VALUES (:id, :name, :description)" +
+                " ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description RETURNING id;";
+        UUID actualId = execute(true, template ->
+                template.queryForObject(sql, getParamSource(toPersist), UUID.class)); // Возвращаем объект Roles с актуальным ID
+        return toPersist.toBuilder().id(actualId).build();
     }
 
     @Override
     public Optional<Roles> findById(UUID id) {
         String sql = "SELECT * FROM roles WHERE id = :id";
         List<Roles> results = execute(false, template ->
-                template.query(sql, Map.of("id", id.toString()), (rs, rowNum) -> authDbMapper.roleFromResultSet(rs)));
+                template.query(sql, Map.of("id", id), (rs, rowNum) -> authDbMapper.roleFromResultSet(rs)));
         return results.stream().findFirst();
     }
 
@@ -71,7 +71,8 @@ public class JdbcRolesDao extends AbstractJdbcDao implements IRolesDao {
     @Override
     public boolean deleteById(UUID id) {
         String sql = "DELETE FROM roles WHERE id = :id";
-        int rows = execute(true, template -> template.update(sql, Map.of("id", id.toString())));
+        int rows = execute(true, template ->
+                template.update(sql, Map.of("id", id)));
         return rows > 0;
     }
 

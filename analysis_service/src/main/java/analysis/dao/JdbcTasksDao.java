@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import com.shared.tx.ConnectionHolder;
 
 import java.sql.Connection;
+import java.sql.Types;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,7 +28,7 @@ public class JdbcTasksDao extends AbstractJdbcDao implements ITasksDao {
     }
     private MapSqlParameterSource getParamSource(Tasks task) {
         return new MapSqlParameterSource()
-                .addValue("id", task.getId())
+                .addValue("id", task.getId(), Types.OTHER)
                 .addValue("brandId", task.getBrandId())
                 .addValue("brandName", task.getBrandName())
                 .addValue("query", task.getQuery())

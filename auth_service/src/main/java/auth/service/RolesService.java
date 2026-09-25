@@ -2,7 +2,7 @@ package auth.service;
 
 import auth.dao.IRolesDao;
 import auth.dao.IUserDao;
-import auth.dao.IUserRolesDao;
+import auth.dao.IUserRoleDao;
 import auth.entity.RoleNames;
 import auth.entity.Roles;
 import auth.entity.User;
@@ -83,6 +83,7 @@ public class RolesService implements IRolesService {
     }
 
     private RoleDto mapToDto(Roles role) {
-        return new RoleDto(role.getId(), role.getName().getValue(), role.getDescription(), LocalDateTime.now());
+        return new RoleDto(role.getId(), role.getName().getValue(), role.getDescription());
+        //время создание на время или насовсем убрано
     }
 }

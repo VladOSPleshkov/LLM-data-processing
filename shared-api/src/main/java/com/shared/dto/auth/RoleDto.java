@@ -7,6 +7,6 @@ import java.util.UUID;
 public record RoleDto(
         @JsonProperty("id") UUID id,
         @JsonProperty("name") String name,
-        @JsonProperty("description") String description,
-        @JsonProperty("created_at")LocalDateTime createdAt
+        @JsonProperty("description") String description
+        //@JsonProperty("created_at")LocalDateTime createdAt
 ) {}

@@ -25,34 +25,34 @@ public class JdbcUserRoleDao extends AbstractJdbcDao implements IUserRoleDao {
                 VALUES (:userId, :roleId, now(), :assignedBy)
                 """;
         execute(true, template -> template.update(sql, new MapSqlParameterSource()
-                .addValue("userId", userId.toString())
-                .addValue("roleId", roleId.toString())
-                .addValue("assignedBy", assignedBy != null ? assignedBy.toString() : null)));
+                .addValue("userId", userId)
+                .addValue("roleId", roleId)
+                .addValue("assignedBy", assignedBy)));
     }
 
     @Override
     public void unlink(UUID userId, UUID roleId) {
         String sql = "DELETE FROM user_roles WHERE user_id = :userId AND role_id = :roleId";
         execute(true, template -> template.update(sql, Map.of(
-                "userId", userId.toString(), "roleId", roleId.toString())));
+                "userId", userId, "roleId", roleId)));
     }
 
     @Override
     public List<UUID> findRoleIdsByUserId(UUID userId) {
         String sql = "SELECT role_id FROM user_roles WHERE user_id = :userId";
-        return execute(false, template -> template.query(sql, Map.of("userId", userId.toString()),
-                (rs, rowNum) -> UUID.fromString(rs.getString("role_id"))));
+        return execute(false, template -> template.query(sql, Map.of("userId", userId),
+                (rs, rowNum) -> rs.getObject("role_id", UUID.class)));
     }
 
     @Override
     public void deleteAllByUserId(UUID userId) {
         String sql = "DELETE FROM user_roles WHERE user_id = :userId";
-        execute(true, template -> template.update(sql, Map.of("userId", userId.toString())));
+        execute(true, template -> template.update(sql, Map.of("userId", userId)));
     }
 
     @Override
     public void deleteAllByRoleId(UUID roleId) {
         String sql = "DELETE FROM user_roles WHERE role_id = :roleId";
-        execute(true, template -> template.update(sql, Map.of("roleId", roleId.toString())));
+        execute(true, template -> template.update(sql, Map.of("roleId", roleId)));
     }
 }

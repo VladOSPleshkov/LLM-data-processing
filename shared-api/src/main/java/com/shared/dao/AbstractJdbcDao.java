@@ -51,7 +51,8 @@ public class AbstractJdbcDao {
     protected boolean recordExistsById(String tableName, UUID id) {
         String sql = "select 1 from " + tableName + " where id= :id";
         return execute(false, template -> {
-            var rows =template.query(sql, Map.of("id", id.toString()), (rs, rowNum) -> 1);
+            var rows = template.query(sql, Map.of("id", id.toString()), (rs, rowNum) -> 1);
+            //возможно toString убрать
             return !rows.isEmpty();
                 }
                 );

@@ -22,6 +22,7 @@ public class Tasks {
     private LocalDateTime updatedAt;
     private int topK;
     private int tokenUsed;
+    //private UUID createdBy;
 
     @Override
     public boolean equals(Object o) {
