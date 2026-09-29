@@ -42,7 +42,8 @@ public class User {
     public void addRole(Roles role, UUID assignedBy) {
         boolean alreadyExists = this.userRoles.stream()
                 .anyMatch(ur -> ur.getRole().getId().equals(role.getId()));
-        if (!alreadyExists) { UserRoles userRole = UserRoles.of(this, role, assignedBy); this.userRoles.add(userRole); }
+        if (!alreadyExists) { UserRoles userRole = UserRoles.of(this, role, assignedBy);
+            this.userRoles.add(userRole); }
         UserRoles link = UserRoles.of(this, role, assignedBy);
         this.userRoles.add(link);
         role.getUserRoles().add(link);

@@ -54,9 +54,13 @@ public class UserRoleService {
     @Transactional
     public void unlink(UUID userId, UUID roleId) {
         UserRoleId compositeKey = new UserRoleId(userId, roleId);
-        if (!userRolesDao.deleteById(compositeKey)) {
-            throw new EntityNotFoundException("Связь пользователя " + userId + " и роли " + roleId + " не найдена");
-        }
+
+        UserRoles userRole = userRolesDao.findById(compositeKey)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Связь пользователя " + userId + " и роли " + roleId + " не найдена"
+                ));
+
+        userRolesDao.delete(userRole);
     }
 
     @Transactional(readOnly = true)
