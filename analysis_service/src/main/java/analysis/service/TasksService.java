@@ -1,93 +1,38 @@
 package analysis.service;
 
-import analysis.dao.ITasksDao;
-import analysis.dao.ITokenUsageDao;
+import analysis.dao.TasksDao;
 import analysis.entity.Status;
 import analysis.entity.Tasks;
 import analysis.entity.TokenUsage;
 import com.shared.dto.analysis.*;
 import com.shared.exception.EntityNotFoundException;
 import com.shared.service.ITasksService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import com.shared.common.annotation.ManualTransactional;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Service
+@Service("tasksService")
 public class TasksService implements ITasksService {
 
-    private final ITasksDao tasksDao;
-    private final ITokenUsageDao tokenUsageDao;
-    private final TasksMapper mapper;
-    private static final String DB_KEY = "ANALYSIS_DB";
+    private final TasksDao tasksDao;
 
-    public TasksService(ITasksDao tasksDao, ITokenUsageDao tokenUsageDao, TasksMapper mapper) {
+    public TasksService(TasksDao tasksDao) {
         this.tasksDao = tasksDao;
-        this.tokenUsageDao = tokenUsageDao;
-        this.mapper = mapper;
     }
+
     @Override
+    @Transactional
     public TaskDto createTask(CreateTaskRequest request) {
-        // Одна запись в одну таблицу формальная транзакция не нужна
-        // вместо неё явная проверка успеха
-        Tasks entity = mapper.toEntity(request);
-        Tasks saved = tasksDao.save(entity);
-
-        if (!tasksDao.existsById(saved.getId())) {
-            throw new IllegalStateException("Не удалось подтвердить сохранение задачи " + saved.getId());
-        }
-        return mapper.toDto(saved);
-    }
-    @Override
-    public TaskDto getTaskById(UUID id) {
-        Tasks task = tasksDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Задача с ID " + id + " не найдена"));
-        return mapper.toDto(task);
+        return startAnalysis(request);
     }
 
     @Override
-    public List<TaskDto> getAllTasks() {
-        return mapper.toDtoList(tasksDao.findAll());
-    }
-
-    @Override
-    public TaskDto updateTask(UUID id, UpdateTaskRequest request) {
-        Tasks existing = tasksDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Задача с ID " + id + " не найдена"));
-
-        mapper.updateEntityFromRequest(request, existing);
-        Tasks result = tasksDao.update(existing);
-
-        if (!tasksDao.existsById(id)) {
-            throw new IllegalStateException("Не удалось подтвердить обновление задачи " + id);
-        }
-        return mapper.toDto(result);
-    }
-
-    @Override
-    public boolean deleteTask(UUID id) {
-        // Каскад: сначала логи токенов, потом сама задача — согласованность
-        // важна, поэтому оборачиваем в транзакцию.
-        return deleteTaskTransactional(id);
-    }
-
-    @ManualTransactional(dbKey = DB_KEY)
-    protected boolean deleteTaskTransactional(UUID id) {
-        tokenUsageDao.findByTasksId(id).forEach(usage -> tokenUsageDao.deleteById(usage.getId()));
-        return tasksDao.deleteById(id);
-    }
-
-    /**
-     * Многошаговая операция (1 задача + 2 записи расхода токенов) — должна быть
-     * атомарной, поэтому выполняется в рамках единой ручной транзакции.
-     */
-    @Override
-    @ManualTransactional(dbKey = DB_KEY)
-    public TaskWithUsageResponse startAnalysis(CreateTaskRequest request) {
+    @Transactional
+    public TaskDto startAnalysis(CreateTaskRequest request) {
         Tasks task = Tasks.builder()
                 .brandId(request.brandId())
                 .brandName(request.brandName())
@@ -95,53 +40,126 @@ public class TasksService implements ITasksService {
                 .status(Status.PROCESSING)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .topK(request.topK())
+                .topK(request.topK() > 0 ? request.topK() : 10)
                 .tokenUsed(0)
                 .build();
+
         Tasks savedTask = tasksDao.save(task);
-        UUID taskId = savedTask.getId();
-
-        tokenUsageDao.save(TokenUsage.builder()
-                .tasksId(taskId).modelName("gpt-4o-mini")
-                .promptTokens(150L).responseTokens(45L)
-                .recorderedAt(LocalDateTime.now()).build());
-
-        tokenUsageDao.save(TokenUsage.builder()
-                .tasksId(taskId).modelName("gpt-4o")
-                .promptTokens(1200L).responseTokens(450L)
-                .recorderedAt(LocalDateTime.now()).build());
-
-        int totalTokens = 150 + 45 + 1200 + 450;
-        String mockLlmResult = "Анализ завершён. 85% отзывов позитивны.";
-
-        Tasks completedTask = savedTask.toBuilder()
-                .status(Status.COMPLETED)
-                .result(mockLlmResult)
-                .completedAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .tokenUsed(totalTokens)
-                .build();
-        tasksDao.update(completedTask);
-
-        return buildUsageResponse(completedTask);
+        processTaskMock(savedTask); // Имитация обработки
+        return toDto(savedTask);
     }
 
     @Override
-    public TaskWithUsageResponse getTaskWithUsages(UUID id) {
+    @Transactional(readOnly = true)
+    public TaskDto getTaskById(UUID id) {
         Tasks task = tasksDao.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Задача с ID " + id + " не найдена"));
-        return buildUsageResponse(task);
+        return toDto(task);
     }
 
-    private TaskWithUsageResponse buildUsageResponse(Tasks task) {
-        List<TokenUsageDto> logs = tokenUsageDao.findByTasksId(task.getId()).stream()
-                .map(u -> new TokenUsageDto(u.getId(), u.getTasksId(), u.getPromptTokens(),
-                        u.getResponseTokens(), u.getModelName(), u.getRecorderedAt()))
-                .collect(Collectors.toList());
+    @Override
+    @Transactional(readOnly = true)
+    public TaskDto getTaskWithUsages(UUID id) {
+        // Подгружает задачу и TokenUsage за 1 SQL-запрос через LEFT JOIN FETCH
+        Tasks task = tasksDao.findByIdWithTokenUsages(id)
+                .orElseThrow(() -> new EntityNotFoundException("Задача с ID " + id + " не найдена"));
+        return toDto(task);
+    }
 
-        return new TaskWithUsageResponse(
-                task.getId(), task.getStatus().name(), task.getQuery(),
-                task.getResult(), logs, task.getCreatedAt()
+    @Override
+    @Transactional(readOnly = true)
+    public List<TaskDto> getAllTasks() {
+        return tasksDao.findAll().stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public TaskDto updateTask(UUID id, UpdateTaskRequest request) {
+        Tasks task = tasksDao.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Задача с ID " + id + " не найдена"));
+
+        if (request.status() != null) {
+            task.setStatus(Status.valueOf(request.status()));
+        }
+        if (request.result() != null) {
+            task.setResult(request.result());
+        }
+        if (request.errorMessage() != null) {
+            task.setErrorMessage(request.errorMessage());
+        }
+        if (request.tokenUsed() != null) {
+            task.setTokenUsed(request.tokenUsed());
+        }
+
+        task.setUpdatedAt(LocalDateTime.now());
+
+        // Dirty Checking Hibernate автоматически выполнит UPDATE при коммите транзакции
+        return toDto(task);
+    }
+
+    @Override
+    public boolean deleteTask(UUID id) {
+        if (!tasksDao.deleteById(id)) {
+            throw new EntityNotFoundException("Задача с ID " + id + " не найдена для удаления");
+        } else {
+            return tasksDao.deleteById(id);
+        }
+    }
+
+    private void processTaskMock(Tasks task) {
+        String mockResult = "Аналитический отчет по запросу '" + task.getQuery() + "'.";
+        long mockPrompt = 150L;
+        long mockResponse = 250L;
+
+        TokenUsage usage = TokenUsage.builder()
+                .task(task)
+                .modelName("mock-llm-v1")
+                .promptTokens(mockPrompt)
+                .responseTokens(mockResponse)
+                .recordedAt(LocalDateTime.now())
+                .build();
+
+        task.getTokenUsages().add(usage);
+        task.setStatus(Status.COMPLETED);
+        task.setResult(mockResult);
+        task.setTokenUsed((int) (mockPrompt + mockResponse));
+        task.setCompletedAt(LocalDateTime.now());
+        task.setUpdatedAt(LocalDateTime.now());
+    }
+
+    private TokenUsageDto toTokenUsageDto(TokenUsage tu) {
+        return new TokenUsageDto(
+                tu.getId(),
+                tu.getTask() != null ? tu.getTask().getId() : null,
+                tu.getPromptTokens(),
+                tu.getResponseTokens(),
+                tu.getModelName(),
+                tu.getRecordedAt()
+        );
+    }
+
+    private TaskDto toDto(Tasks task) {
+        List<TokenUsageDto> tokenUsageDtos = task.getTokenUsages() == null ? List.of() :
+                task.getTokenUsages().stream()
+                        .map(this::toTokenUsageDto)
+                        .collect(Collectors.toList());
+
+        return new TaskDto(
+                task.getId(),
+                task.getBrandId(),
+                task.getBrandName(),
+                task.getQuery(),
+                task.getStatus() != null ? task.getStatus().name() : null,
+                task.getResult(),
+                task.getCreatedAt(),
+                task.getCompletedAt(),
+                task.getErrorMessage(),
+                task.getUpdatedAt(),
+                task.getTopK(),
+                task.getTokenUsed()
+                //tokenUsageDtos
         );
     }
 }

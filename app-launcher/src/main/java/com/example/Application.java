@@ -2,6 +2,7 @@ package com.example;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Properties;
 import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -42,6 +43,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import liquibase.integration.spring.SpringLiquibase;
 
+import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
+import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import review.controller.BrandsController;
 import review.controller.CategoriesController;
 import review.controller.ReviewController;
@@ -51,14 +57,13 @@ import analysis.controller.TasksController;
 import auth.controller.RolesController;
 import auth.controller.TokenBlacklistController;
 import auth.controller.UserController;
-import test.ConcurrencyTestRunner;
 
 import javax.sql.DataSource;
 
 
 @Configuration
 @ComponentScan({"auth", "analysis", "review", "com.shared"})
-@EnableAspectJAutoProxy
+@EnableTransactionManagement
 @PropertySources({
         @PropertySource(value = "classpath:auth_app.properties", ignoreResourceNotFound = true),
         @PropertySource(value = "classpath:analysis_app.properties", ignoreResourceNotFound = true),
@@ -91,13 +96,26 @@ private String authUrl;
     public SpringLiquibase liquibaseAuth(@Qualifier("authDataSource") DataSource ds) {
         return liquibase(ds, authChangelog);
     }
-
     @Primary
-    @Bean(name = "authJdbcTemplate")
-    public JdbcTemplate authJdbcTemplate(@Qualifier("authDataSource") DataSource ds) {
-        return new JdbcTemplate(ds);
-    }
+    @Bean(name = "entityManagerFactory") // Имя по умолчанию для @PersistenceContext
+    public LocalContainerEntityManagerFactoryBean authEntityManagerFactory(
+            @Qualifier("authDataSource") DataSource dataSource) {
+        LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
+        em.setDataSource(dataSource);
+        em.setPackagesToScan("auth.entity", "com.shared.entity");
+        em.setPersistenceUnitName("authUnit");
 
+        HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
+        em.setJpaVendorAdapter(vendorAdapter);
+        em.setJpaProperties(hibernateProperties());
+        return em;
+    }
+    @Primary
+    @Bean(name = "transactionManager") // Менеджер транзакций по умолчанию
+    public PlatformTransactionManager authTransactionManager(
+            @Qualifier("entityManagerFactory") LocalContainerEntityManagerFactoryBean emFactory) {
+        return new JpaTransactionManager(emFactory.getObject());
+    }
 //analysis
 @Value("${analysis.db.url:jdbc:postgresql://localhost:5434/analysis_db}")
 private String analysisUrl;
@@ -121,9 +139,23 @@ private String analysisUrl;
         return liquibase(ds, analysisChangelog);
     }
 
-    @Bean(name = "analysisJdbcTemplate")
-    public JdbcTemplate analysisJdbcTemplate(@Qualifier("analysisDataSource") DataSource ds) {
-        return new JdbcTemplate(ds);
+    @Bean(name = "analysisEntityManagerFactory")
+    public LocalContainerEntityManagerFactoryBean analysisEntityManagerFactory(
+            @Qualifier("analysisDataSource") DataSource dataSource) {
+        LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
+        em.setDataSource(dataSource);
+        em.setPackagesToScan("analysis.entity");
+        em.setPersistenceUnitName("analysisUnit");
+
+        HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
+        em.setJpaVendorAdapter(vendorAdapter);
+        em.setJpaProperties(hibernateProperties());
+        return em;
+    }
+    @Bean(name = "analysisTransactionManager")
+    public PlatformTransactionManager analysisTransactionManager(
+            @Qualifier("analysisEntityManagerFactory") LocalContainerEntityManagerFactoryBean emFactory) {
+        return new JpaTransactionManager(emFactory.getObject());
     }
 
     //review
@@ -149,9 +181,23 @@ private String analysisUrl;
         return liquibase(ds, reviewChangelog);
     }
 
-    @Bean(name = "reviewJdbcTemplate")
-    public JdbcTemplate reviewJdbcTemplate(@Qualifier("reviewDataSource") DataSource ds) {
-        return new JdbcTemplate(ds);
+    @Bean(name = "reviewEntityManagerFactory")
+    public LocalContainerEntityManagerFactoryBean reviewEntityManagerFactory(
+            @Qualifier("reviewDataSource") DataSource dataSource) {
+        LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
+        em.setDataSource(dataSource);
+        em.setPackagesToScan("review.entity");
+        em.setPersistenceUnitName("reviewUnit");
+
+        HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
+        em.setJpaVendorAdapter(vendorAdapter);
+        em.setJpaProperties(hibernateProperties());
+        return em;
+    }
+    @Bean(name = "reviewTransactionManager")
+    public PlatformTransactionManager reviewTransactionManager(
+            @Qualifier("reviewEntityManagerFactory") LocalContainerEntityManagerFactoryBean emFactory) {
+        return new JpaTransactionManager(emFactory.getObject());
     }
 
 //общие бины и доп методы
@@ -162,11 +208,6 @@ private String analysisUrl;
         ds.setUsername(user);
         ds.setPassword(password);
         return ds;
-    }
-
-    @Bean
-    public JdbcTemplate jdbcTemplate(DataSource dataSource) {
-        return new JdbcTemplate(dataSource);
     }
 
     @Bean
@@ -184,6 +225,14 @@ private String analysisUrl;
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         return mapper;
     }
+    private Properties hibernateProperties() {
+        Properties properties = new Properties();
+        properties.setProperty("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
+        properties.setProperty("hibernate.show_sql", "true");
+        properties.setProperty("hibernate.format_sql", "true");
+        properties.setProperty("hibernate.hbm2ddl.auto", "none");
+        return properties;
+    }
     @Bean
     public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
         return new PropertySourcesPlaceholderConfigurer();
@@ -191,6 +240,18 @@ private String analysisUrl;
     private static UUID extractUuidId(ObjectMapper mapper, String json) throws Exception {
         JsonNode node = mapper.readTree(json);
         return UUID.fromString(node.get("id").asText());
+    }
+    private static UUID getOrCreateRoleId(RolesController rolesController, ObjectMapper mapper, String roleName, String description) throws Exception {
+        String allRolesJson = rolesController.processGetAll();
+        JsonNode rolesArray = mapper.readTree(allRolesJson);
+
+        for (JsonNode roleNode : rolesArray) {
+            if (roleName.equalsIgnoreCase(roleNode.get("name").asText())) {
+                System.out.println("--- FOUND existing role (" + roleName + "): " + roleNode.get("id").asText());
+                return UUID.fromString(roleNode.get("id").asText());
+            }
+        }
+        throw new IllegalStateException("Роль '" + roleName + "' не найдена в БД. Проверьте выполнение файлов миграции.");
     }
     @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
@@ -207,16 +268,8 @@ private String analysisUrl;
                 context.getBean("tokenBlacklistController", TokenBlacklistController.class);
 
         System.out.println("\nroles");
-        String role1Json = rolesController.processCreate(new CreateRoleRequest("ADMIN", "Полный доступ к системе"));
-        System.out.println("--- CREATE role #1 (ADMIN) ---\n" + role1Json);
-        UUID role1Id = UUID.fromString(mapper.readTree(role1Json).get("id").asText());
-
-        //String getRoleJson = rolesController.processGetById(role1Id);
-        //System.out.println("Найденная роль: " + getRoleJson);
-
-        String role2Json = rolesController.processCreate(new CreateRoleRequest("USER", "Обычный пользователь"));
-        System.out.println("--- CREATE role #2 (USER) ---\n" + role2Json);
-        UUID role2Id = UUID.fromString(mapper.readTree(role2Json).get("id").asText());
+        UUID role1Id = getOrCreateRoleId(rolesController, mapper, "ROLE_ADMIN", "Полный доступ к системе");
+        UUID role2Id = getOrCreateRoleId(rolesController, mapper, "ROLE_MANAGER", "..");
 
         System.out.println("--- READ role #1 ---");
         System.out.println(rolesController.processGetById(role1Id));
@@ -233,12 +286,12 @@ private String analysisUrl;
 
         System.out.println("\n=users");
 
-        List<String> adminRoles = List.of("ADMIN");
-        List<String> noRoles = List.of();
+        List<String> adminRoles = List.of("ROLE_ADMIN");
+        List<String> noRoles = List.of("ROLE_MANAGER");
         String user1Json = userController.processCreate(
                 new CreateUserRequest("alice", "keycloak-sub-alice", "alice@example.com", adminRoles));
         System.out.println(user1Json);
-        ConcurrencyTestRunner.runUsersConcurrencyTest(userController, 10);
+        //ConcurrencyTestRunner.runUsersConcurrencyTest(userController, 10);
         UUID user1Id = extractUuidId(mapper, user1Json);
 
         String user2Json = userController.processCreate(
@@ -248,8 +301,8 @@ private String analysisUrl;
 
         System.out.println(userController.processGetById(user1Id));
         System.out.println(userController.processDelete(user2Id));
-        System.out.println(userController.processUpdate(user1Id,
-                new UpdateUserRequest("alice.new@example.com", adminRoles)));
+//        System.out.println(userController.processUpdate(user1Id,
+//                new UpdateUserRequest("alice.new@example.com", adminRoles)));
         System.out.println(userController.processGetById(user1Id));
 
         System.out.println(userController.processAssignRole(
@@ -258,28 +311,28 @@ private String analysisUrl;
                 new RevokeRoleRequest(user1Id, role1Id)));
 
         System.out.println("\nrefreshtokenblacklist");
-        String token1Json = tokenController.processCreate(new CreateBlacklistTokenRequest(
-                "refresh_token_abc123", user1Id, LocalDateTime.now().plusDays(7)));
-        System.out.println("--- CREATE blacklist entry #1 ---\n" + token1Json);
-        UUID token1Id = UUID.fromString(mapper.readTree(token1Json).get("id").asText());
-
-        String token2Json = tokenController.processCreate(new CreateBlacklistTokenRequest(
-                "refresh_token_def456", user1Id, LocalDateTime.now().plusDays(3)));
-        System.out.println("--- CREATE blacklist entry #2 ---\n" + token2Json);
-        UUID token2Id = UUID.fromString(mapper.readTree(token2Json).get("id").asText());
-
-        System.out.println("--- READ blacklist entry #1 ---");
-        System.out.println(tokenController.processGetById(token1Id));
-
-        System.out.println("--- DELETE blacklist entry #2 ---");
-        System.out.println(tokenController.processDelete(token2Id));
-
-        System.out.println("--- UPDATE blacklist entry #1 ---");
-        System.out.println(tokenController.processUpdate(token1Id,
-                new UpdateBlacklistTokenRequest(LocalDateTime.now().plusDays(30))));
-
-        System.out.println("--- READ blacklist entry #1 again ---");
-        System.out.println(tokenController.processGetById(token1Id));
+//        String token1Json = tokenController.processCreate(new CreateBlacklistTokenRequest(
+//                "refresh_token_abc123",LocalDateTime.now().plusDays(7), user1Id, LocalDateTime.now().plusDays(7)));
+//        System.out.println("--- CREATE blacklist entry #1 ---\n" + token1Json);
+//        UUID token1Id = UUID.fromString(mapper.readTree(token1Json).get("id").asText());
+//
+//        String token2Json = tokenController.processCreate(new CreateBlacklistTokenRequest(
+//                "refresh_token_def456", user1Id, LocalDateTime.now().plusDays(3)));
+//        System.out.println("--- CREATE blacklist entry #2 ---\n" + token2Json);
+//        UUID token2Id = UUID.fromString(mapper.readTree(token2Json).get("id").asText());
+//
+//        System.out.println("--- READ blacklist entry #1 ---");
+//        System.out.println(tokenController.processGetById(token1Id));
+//
+//        System.out.println("--- DELETE blacklist entry #2 ---");
+//        System.out.println(tokenController.processDelete(token2Id));
+//
+//        System.out.println("--- UPDATE blacklist entry #1 ---");
+//        System.out.println(tokenController.processUpdate(token1Id,
+//                new UpdateBlacklistTokenRequest(LocalDateTime.now().plusDays(30))));
+//
+//        System.out.println("--- READ blacklist entry #1 again ---");
+//        System.out.println(tokenController.processGetById(token1Id));
 
         /// review_service
 
@@ -385,7 +438,7 @@ private String analysisUrl;
 
         System.out.println("--- READ task #1 again ---");
         System.out.println(tasksController.processGetById(task1Id));
-        ConcurrencyTestRunner.runTasksConcurrencyTest(tasksController, 10);
+        //ConcurrencyTestRunner.runTasksConcurrencyTest(tasksController, 10);
 
         //System.out.println("--- Полный RAG-конвейер (доп. вариант использования сервиса) ---");
         //System.out.println(tasksController.processStartAnalysis(

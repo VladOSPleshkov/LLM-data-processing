@@ -13,8 +13,7 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 @Component("tasksController")
-public class TasksController
-        implements CrudController<CreateTaskRequest, TaskDto, UpdateTaskRequest, UUID> {
+public class TasksController implements CrudController<CreateTaskRequest, TaskDto, UpdateTaskRequest, UUID> {
 
     private final ITasksService tasksService;
     private final ObjectMapper objectMapper;
@@ -28,13 +27,24 @@ public class TasksController
     }
 
     @Override
-    public String processCreate(CreateTaskRequest request) { return toJson(tasksService.createTask(request)); }
+    public String processCreate(CreateTaskRequest request) {
+        return toJson(tasksService.createTask(request));
+    }
+
     @Override
-    public String processGetById(UUID id) { return toJson(tasksService.getTaskById(id)); }
+    public String processGetById(UUID id) {
+        return toJson(tasksService.getTaskById(id));
+    }
+
     @Override
-    public String processGetAll() { return toJson(tasksService.getAllTasks()); }
+    public String processGetAll() {
+        return toJson(tasksService.getAllTasks());
+    }
+
     @Override
-    public String processUpdate(UUID id, UpdateTaskRequest request) { return toJson(tasksService.updateTask(id, request)); }
+    public String processUpdate(UUID id, UpdateTaskRequest request) {
+        return toJson(tasksService.updateTask(id, request));
+    }
 
     @Override
     public String processDelete(UUID id) {
@@ -47,16 +57,15 @@ public class TasksController
     }
 
     /**
-     * Новый эндпоинт для получения задачи со встроенным TokenUsage рекордом
+     * Эндпоинт для получения задачи со всем списком TokenUsage
      */
     public String processGetWithUsage(UUID id) {
-        // Вызывает сервис, который собирает Tasks + TokenUsage
         return toJson(tasksService.getTaskWithUsages(id));
     }
 
     @Override
     public String getModuleName() {
-        return "";
+        return moduleName;
     }
 
     public String execute() {

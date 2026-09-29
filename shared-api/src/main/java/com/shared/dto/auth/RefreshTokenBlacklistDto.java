@@ -5,8 +5,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record RefreshTokenBlacklistDto(
-        UUID id, @JsonProperty("jti") String jti,
         @JsonProperty("user_id") UUID userId,
+        @JsonProperty("token") String token,
         @JsonProperty("revoked_at") LocalDateTime revokedAt,
         @JsonProperty("expires_at") LocalDateTime expiresAt
 ) {}

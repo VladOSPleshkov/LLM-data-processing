@@ -13,29 +13,61 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.shared.dto.review.*;
+import com.shared.exception.EntityNotFoundException;
+import com.shared.service.IReviewService;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import review.dao.BrandsDao;
+import review.dao.CategoriesDao;
+import review.dao.ReviewsDao;
+import review.dao.VectorStoreDao;
+import review.entity.Brands;
+import review.entity.Categories;
+import review.entity.Reviews;
+import review.entity.VectorStore;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+/**
+ * получение полной информации об отзыве (бренд + категории + вектор) выполняется ОДНИМ JPQL-запросом
+ * через ReviewsDao#findByIdWithDetails / #findAllWithDetails, что устраняет
+ * N+1, присутствовавший в исходной реализации (там категории и вектор
+ * дотягивались отдельными DAO-вызовами в цикле для каждого отзыва).
+ *
+ * Управление ManyToMany выполняется через модификацию коллекции
+ * Reviews.categories — JPA-провайдер сам синхронизирует join-таблицу
+ * review_categories при флаше транзакции, отдельный ReviewCategoryDao
+ * (как в legacy) больше не требуется.
+ */
 @Component("reviewService")
 public class ReviewService implements IReviewService {
 
-    private final IReviewDao reviewDao;
-    private final IVectorStoreDao vectorStoreDao;
-    private final ICategoriesDao categoriesDao;
-    private final IBrandsDao brandsDao;
-    private final IReviewCategoryDao reviewCategoryDao;
+    private final ReviewsDao reviewsDao;
+    private final BrandsDao brandsDao;
+    private final CategoriesDao categoriesDao;
+    private final VectorStoreDao vectorStoreDao;
 
-    public ReviewService(IReviewDao reviewDao, IVectorStoreDao vectorStoreDao,
-                         ICategoriesDao categoriesDao, IBrandsDao brandsDao,
-                         IReviewCategoryDao reviewCategoryDao) {
-        this.reviewDao = reviewDao;
-        this.vectorStoreDao = vectorStoreDao;
-        this.categoriesDao = categoriesDao;
+    public ReviewService(ReviewsDao reviewsDao, BrandsDao brandsDao,
+                         CategoriesDao categoriesDao, VectorStoreDao vectorStoreDao) {
+        this.reviewsDao = reviewsDao;
         this.brandsDao = brandsDao;
-        this.reviewCategoryDao = reviewCategoryDao;
+        this.categoriesDao = categoriesDao;
+        this.vectorStoreDao = vectorStoreDao;
     }
 
     @Override
+    @Transactional("reviewTransactionManager")
     public ReviewFullResponse createReview(CreateReviewRequest request) {
+        Brands brand = brandsDao.findById(request.brandId())
+                .orElseThrow(() -> new EntityNotFoundException("Бренд с ID " + request.brandId() + " не найден"));
+
         Reviews entity = Reviews.builder()
-                .brandId(request.brandId())
+                .brand(brand)
                 .content(request.content())
                 .rating(request.rating())
                 .authorName(request.authorName())
@@ -44,114 +76,135 @@ public class ReviewService implements IReviewService {
                 .indexedAt(LocalDateTime.now())
                 .build();
 
-        Reviews savedReview = reviewDao.create(entity);
-        UUID reviewId = savedReview.getId();
-
-        // many-to-many: связываем с категориями (создаём при отсутствии)
         List<String> categoryNames = request.categoryNames() == null ? List.of() : request.categoryNames();
         for (String categoryName : categoryNames) {
-            UUID categoryId = categoriesDao.findOrCreateCategory(categoryName);
-            reviewCategoryDao.link(reviewId, categoryId);
+            Categories category = findOrCreateCategory(categoryName);
+            entity.addCategory(category);
         }
 
-        // 1:1 c VectorStore
+        Reviews savedReview = reviewsDao.save(entity);
+
         if (request.embedding() != null) {
-            vectorStoreDao.save(VectorStore.builder()
-                    .reviewsId(reviewId)
+            VectorStore vectorStore = VectorStore.builder()
                     .embedding(request.embedding())
                     .metadata(request.metadata())
-                    .build());
+                    .build();
+            savedReview.assignVectorStore(vectorStore);
+            vectorStoreDao.save(vectorStore);
         }
 
         return mapToFullResponse(savedReview);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ReviewFullResponse getReviewById(UUID id) {
-        Reviews review = reviewDao.readById(id)
+        Reviews review = reviewsDao.findByIdWithDetails(id)
                 .orElseThrow(() -> new EntityNotFoundException("Отзыв с ID " + id + " не найден"));
         return mapToFullResponse(review);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ReviewFullResponse> getAllReviews() {
         List<ReviewFullResponse> responses = new ArrayList<>();
-        for (Reviews review : reviewDao.readAll()) {
+        for (Reviews review : reviewsDao.findAllWithDetails()) {
             responses.add(mapToFullResponse(review));
         }
         return responses;
     }
 
     @Override
+    @Transactional("reviewTransactionManager")
     public ReviewFullResponse updateReview(UUID id, UpdateReviewRequest request) {
-        Reviews existing = reviewDao.readById(id)
+        Reviews existing = reviewsDao.findByIdWithDetails(id)
                 .orElseThrow(() -> new EntityNotFoundException("Отзыв с ID " + id + " не найден"));
 
-        Reviews updatedEntity = Reviews.builder()
-                .id(existing.getId())
-                .brandId(existing.getBrandId())
-                .content(request.content() != null ? request.content() : existing.getContent())
-                .rating(request.rating() != null ? request.rating() : existing.getRating())
-                .createdAt(existing.getCreatedAt())
-                .indexedAt(LocalDateTime.now())
-                .authorName(existing.getAuthorName())
-                .source(existing.getSource())
-                .build();
-
-        reviewDao.update(updatedEntity);
+        if (request.content() != null) {
+            existing.setContent(request.content());
+        }
+        if (request.rating() != null) {
+            existing.setRating(request.rating());
+        }
+        existing.setIndexedAt(LocalDateTime.now());
 
         if (request.categoryNames() != null) {
-            reviewCategoryDao.deleteAllByReviewId(id);
+            existing.clearCategories();
             for (String categoryName : request.categoryNames()) {
-                UUID categoryId = categoriesDao.findOrCreateCategory(categoryName);
-                reviewCategoryDao.link(id, categoryId);
+                Categories category = findOrCreateCategory(categoryName);
+                existing.addCategory(category);
             }
         }
 
-        return getReviewById(id);
+        // existing управляема текущей транзакцией — merge не требуется (dirty checking).
+        return mapToFullResponse(existing);
     }
 
     @Override
+    @Transactional("reviewTransactionManager")
     public boolean deleteReview(UUID id) {
-        vectorStoreDao.deleteByReviewId(id);
-        reviewCategoryDao.deleteAllByReviewId(id);
-        return reviewDao.deleteById(id);
+        return reviewsDao.findById(id)
+                .map(review -> {
+                    // vectorStore удалится каскадно (orphanRemoval=true на Reviews.vectorStore),
+                    // join-строки review_categories удалит JPA-провайдер автоматически.
+                    reviewsDao.delete(review);
+                    return true;
+                })
+                .orElse(false);
     }
 
     @Override
+    @Transactional("reviewTransactionManager")
     public ReviewFullResponse addCategory(AddCategoryToReviewRequest request) {
-        reviewDao.readById(request.reviewId())
+        Reviews review = reviewsDao.findByIdWithDetails(request.reviewId())
                 .orElseThrow(() -> new EntityNotFoundException("Отзыв с ID " + request.reviewId() + " не найден"));
-        categoriesDao.findById(request.categoryId())
+        Categories category = categoriesDao.findById(request.categoryId())
                 .orElseThrow(() -> new EntityNotFoundException("Категория с ID " + request.categoryId() + " не найдена"));
 
-        reviewCategoryDao.link(request.reviewId(), request.categoryId());
-        return getReviewById(request.reviewId());
+        review.addCategory(category);
+        return mapToFullResponse(review);
     }
 
     @Override
+    @Transactional("reviewTransactionManager")
     public ReviewFullResponse removeCategory(RemoveCategoryFromReviewRequest request) {
-        reviewCategoryDao.unlink(request.reviewId(), request.categoryId());
-        return getReviewById(request.reviewId());
+        Reviews review = reviewsDao.findByIdWithDetails(request.reviewId())
+                .orElseThrow(() -> new EntityNotFoundException("Отзыв с ID " + request.reviewId() + " не найден"));
+        Categories category = categoriesDao.findById(request.categoryId())
+                .orElseThrow(() -> new EntityNotFoundException("Категория с ID " + request.categoryId() + " не найдена"));
+
+        review.removeCategory(category);
+        return mapToFullResponse(review);
     }
 
-    private ReviewFullResponse mapToFullResponse(Reviews entity) {
-        String brandName = brandsDao.findById(entity.getBrandId())
-                .map(review.entity.Brands::getBrandName)
-                .orElse("UNKNOWN");
+    private Categories findOrCreateCategory(String name) {
+        return categoriesDao.findByName(name)
+                .orElseGet(() -> categoriesDao.save(
+                        Categories.builder()
+                                .name(name)
+                                .createdAt(LocalDateTime.now())
+                                .build()
+                ));
+    }
 
-        List<String> categoryNames = reviewCategoryDao.findCategoryIdsByReviewId(entity.getId()).stream()
-                .map(catId -> categoriesDao.findById(catId).map(Categories::getName).orElse("UNKNOWN"))
+    /**
+     * Маппинг в DTO без единого дополнительного SQL-запроса:
+     * review.getBrand() / getCategories() / getVectorStore() уже загружены
+     * JOIN FETCH-запросом в ReviewsDao и находятся в persistence context.
+     */
+    private ReviewFullResponse mapToFullResponse(Reviews entity) {
+        List<String> categoryNames = entity.getCategories().stream()
+                .map(Categories::getName)
                 .collect(Collectors.toList());
 
-        float[] embedding = vectorStoreDao.findByReviewId(entity.getId())
-                .map(VectorStore::getEmbedding)
-                .orElse(null);
+        float[] embedding = entity.getVectorStore() != null
+                ? entity.getVectorStore().getEmbedding()
+                : null;
 
         return new ReviewFullResponse(
                 entity.getId(),
-                entity.getBrandId(),
-                brandName,
+                entity.getBrand().getId(),
+                entity.getBrand().getBrandName(),
                 entity.getContent(),
                 entity.getRating(),
                 entity.getCreatedAt(),

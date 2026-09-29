@@ -64,5 +64,4 @@ public class UserController extends AbstractAuthController
 
     @Override
     public String execute() { return "userController активен"; }
-
 }

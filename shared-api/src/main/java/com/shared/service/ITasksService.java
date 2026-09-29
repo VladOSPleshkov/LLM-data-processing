@@ -15,6 +15,6 @@ public interface ITasksService {
     boolean deleteTask(UUID id);
 
     /*Асинхронное выполнение RAG-конвейера с симуляцией расхода токенов. */
-    TaskWithUsageResponse startAnalysis(CreateTaskRequest request);
-    TaskWithUsageResponse getTaskWithUsages(UUID id);
+    TaskDto startAnalysis(CreateTaskRequest request);
+    TaskDto getTaskWithUsages(UUID id);
 }

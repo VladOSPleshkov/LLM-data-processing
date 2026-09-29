@@ -1,79 +1,95 @@
 package auth.service;
 
-import auth.dao.IRefreshTokenBlacklistDao;
+import auth.dao.TokenBlacklistDao;
+import auth.dao.TokenBlacklistDao;
 import auth.entity.RefreshTokenBlacklist;
 import com.shared.dto.auth.CreateBlacklistTokenRequest;
 import com.shared.dto.auth.RefreshTokenBlacklistDto;
 import com.shared.dto.auth.UpdateBlacklistTokenRequest;
 import com.shared.exception.EntityNotFoundException;
 import com.shared.service.ITokenBlacklistService;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-@Component("tokenBlacklistService")
+@Service("tokenBlacklistService")
 public class TokenBlacklistService implements ITokenBlacklistService {
 
-    private final IRefreshTokenBlacklistDao blacklistDao;
+    private final TokenBlacklistDao tokenBlacklistDao;
 
-    public TokenBlacklistService(IRefreshTokenBlacklistDao blacklistDao) {
-        this.blacklistDao = blacklistDao;
+    public TokenBlacklistService(TokenBlacklistDao tokenBlacklistDao) {
+        this.tokenBlacklistDao = tokenBlacklistDao;
     }
 
-    @Override
+    @Transactional
     public RefreshTokenBlacklistDto blacklistToken(CreateBlacklistTokenRequest request) {
-        RefreshTokenBlacklist entity = RefreshTokenBlacklist.builder()
+        RefreshTokenBlacklist blacklistEntry = RefreshTokenBlacklist.builder()
                 .userId(request.userId())
-                .blacklistedAt(LocalDateTime.now())
+                .token(request.token())
+                .revokedAt(request.revokedAt() != null ? request.revokedAt() : LocalDateTime.now())
                 .expiresAt(request.expiresAt())
+                .revokeReason(request.revokeReason())
                 .build();
-        return mapToDto(blacklistDao.save(entity));
+
+        RefreshTokenBlacklist saved = tokenBlacklistDao.save(blacklistEntry);
+        return toDto(saved);
     }
 
-    @Override
+    @Transactional(readOnly = true)
     public RefreshTokenBlacklistDto getById(UUID id) {
-        return mapToDto(blacklistDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Запись blacklist с ID " + id + " не найдена")));
+        RefreshTokenBlacklist entity = tokenBlacklistDao.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Запись блэклиста с ID " + id + " не найдена"));
+        return toDto(entity);
     }
 
-    @Override
+    @Transactional(readOnly = true)
+    public boolean isTokenBlacklisted(String token) {
+        return tokenBlacklistDao.isBlacklisted(token);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RefreshTokenBlacklistDto> getByUserId(UUID userId) {
+        return tokenBlacklistDao.findByUserId(userId).stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<RefreshTokenBlacklistDto> getAll() {
-        List<RefreshTokenBlacklistDto> result = new ArrayList<>();
-        for (RefreshTokenBlacklist entity : blacklistDao.findAll()) {
-            result.add(mapToDto(entity));
-        }
-        return result;
+        return tokenBlacklistDao.findAll().stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
-    @Override
+    @Transactional
     public RefreshTokenBlacklistDto update(UUID id, UpdateBlacklistTokenRequest request) {
-        RefreshTokenBlacklist existing = blacklistDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Запись blacklist с ID " + id + " не найдена"));
+        RefreshTokenBlacklist entity = tokenBlacklistDao.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Запись блэклиста с ID " + id + " не найдена"));
 
-        RefreshTokenBlacklist updated = RefreshTokenBlacklist.builder()
-                .id(existing.getId())
-                .token(existing.getToken())
-                .userId(existing.getUserId())
-                .blacklistedAt(existing.getBlacklistedAt())
-                .expiresAt(request.expiresAt() != null ? request.expiresAt() : existing.getExpiresAt())
-                .build();
-
-        blacklistDao.update(updated);
-        return mapToDto(updated);
+        entity.setExpiresAt(request.expiresAt());
+        return toDto(entity);
     }
 
-    @Override
+    @Transactional
     public boolean delete(UUID id) {
-        return blacklistDao.deleteById(id);
+        return tokenBlacklistDao.deleteById(id);
     }
 
-    private RefreshTokenBlacklistDto mapToDto(RefreshTokenBlacklist entity) {
+    @Transactional
+    public int purgeExpiredTokens() {
+        return tokenBlacklistDao.deleteExpiredTokens(LocalDateTime.now());
+    }
+
+    private RefreshTokenBlacklistDto toDto(RefreshTokenBlacklist entity) {
         return new RefreshTokenBlacklistDto(
-                entity.getId(), entity.getToken(), entity.getUserId(),
-                entity.getBlacklistedAt(), entity.getExpiresAt()
+                entity.getUserId(),
+                entity.getToken(),
+                entity.getRevokedAt(),
+                entity.getExpiresAt()
         );
     }
 }

@@ -1,143 +1,147 @@
 package auth.service;
 
-import auth.dao.IRolesDao;
-import auth.dao.IUserDao;
-import auth.dao.IUserRoleDao;
+import auth.dao.RolesDao;
+import auth.dao.UserDao;
+import auth.entity.RoleNames;
 import auth.entity.Roles;
 import auth.entity.User;
-import auth.entity.UserRole;
-import com.shared.common.annotation.ManualTransactional;
-import com.shared.dto.auth.AssignRoleRequest;
-import com.shared.dto.auth.CreateUserRequest;
-import com.shared.dto.auth.UpdateUserRequest;
-import com.shared.dto.auth.UserDto;
-import com.shared.dto.auth.UserRoleInfoDto;
-import com.shared.dto.auth.RevokeRoleRequest;
+import com.shared.dto.auth.*;
 import com.shared.exception.EntityNotFoundException;
 import com.shared.service.IUserService;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
-import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.*;
 
 import java.util.stream.Collectors;
 
-@Component("userService")
+@Service("userService")
 public class UserService implements IUserService {
 
-    private static final String DB_KEY = "AUTH_DB";
+    private final UserDao userDao;
+    private final UserRoleService userRoleService;
 
-    private final IUserDao userDao;
-    private final IRolesDao rolesDao;
-    private final IUserRoleDao userRoleDao;
-
-    public UserService(IUserDao userDao, IRolesDao rolesDao, IUserRoleDao userRoleDao) {
+    public UserService(UserDao userDao, UserRoleService userRoleService) {
         this.userDao = userDao;
-        this.rolesDao = rolesDao;
-        this.userRoleDao = userRoleDao;
+        this.userRoleService = userRoleService;
     }
 
     @Override
-    @ManualTransactional(dbKey = DB_KEY) // multi-step: user + N ролей в join-таблице
+    @Transactional
     public UserDto createUser(CreateUserRequest request) {
-        User entity = User.builder()
+        // 1. Создаем пользователя
+        User user = User.builder()
                 .username(request.username())
                 .passwordHash(request.passwordHash())
                 .email(request.email())
                 .registeredAt(LocalDateTime.now())
                 .build();
-        User saved = userDao.save(entity);
 
-        List<String> roleNames = request.roleNames() == null ? List.of() : request.roleNames();
-        for (String roleName : roleNames) {
-            UUID roleId = rolesDao.findOrCreateRole(roleName);
-            userRoleDao.link(saved.getId(), roleId, saved.getId());
+        User savedUser = userDao.save(user);
+
+        // 2. Привязываем роли через агрегат User (addRole), без ролиDao
+        if (request.roleNames() != null && !request.roleNames().isEmpty()) {
+            for (String roleNameStr : request.roleNames()) {
+                RoleNames roleName = RoleNames.fromValue(roleNameStr);
+
+                Roles role = userDao.getEntityManager()
+                        .createQuery("SELECT r FROM Roles r WHERE r.name = :name", Roles.class)
+                        .setParameter("name", roleName.getValue())
+                        .getResultStream()
+                        .findFirst()
+                        .orElseThrow(() -> new EntityNotFoundException("Роль " + roleNameStr + " не найдена"));
+
+                savedUser.addRole(role, savedUser.getId());
+            }
         }
-        return mapToDto(saved);
+
+        return toDto(savedUser);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserDto getUserById(UUID id) {
-        User user = userDao.findById(id)
+        User user = userDao.findByIdWithRolesJoinFetch(id)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь с ID " + id + " не найден"));
-        return mapToDto(user);
+        return toDto(user);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UserDto> getAllUsers() {
-        return userDao.findAll().stream().map(this::mapToDto).collect(Collectors.toList());
+        // Используем EntityGraph для подгрузки ролей за 1 SQL-запрос
+        return userDao.findAllWithRoles().stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional
     public UserDto updateUser(UUID id, UpdateUserRequest request) {
-        User existing = userDao.findById(id)
+        User user = userDao.findByIdWithRolesJoinFetch(id)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь с ID " + id + " не найден"));
 
-        User updated = existing.toBuilder()
-                .email(request.email() != null ? request.email() : existing.getEmail())
-                .build();
-
-        // Одна таблица, одно поле — формальная транзакция не нужна.
-        User result = userDao.update(updated);
-        if (!userDao.existsById(id)) {
-            throw new IllegalStateException("Не удалось подтвердить обновление пользователя " + id);
+        if (request.username() != null) {
+            user.setUsername(request.username());
+        }
+        if (request.email() != null) {
+            user.setEmail(request.email());
         }
 
-        if (request.roleNames() != null) {
-            reassignRoles(id, request.roleNames());
-        }
-        return mapToDto(result);
-    }
-
-    @ManualTransactional(dbKey = DB_KEY) // удаление старых + вставка новых связей — атомарно
-    protected void reassignRoles(UUID userId, List<String> roleNames) {
-        userRoleDao.deleteAllByUserId(userId);
-        for (String roleName : roleNames) {
-            UUID roleId = rolesDao.findOrCreateRole(roleName);
-            userRoleDao.link(userId, roleId, userId);
-        }
+        return toDto(user);
     }
 
     @Override
-    @ManualTransactional(dbKey = DB_KEY) // каскад: связи + сам пользователь
+    @Transactional
     public boolean deleteUser(UUID id) {
-        userRoleDao.deleteAllByUserId(id);
         return userDao.deleteById(id);
     }
 
     @Override
-    @ManualTransactional(dbKey = DB_KEY)
+    @Transactional
     public UserDto assignRole(AssignRoleRequest request) {
-        User user = userDao.findById(request.userId())
-                .orElseThrow(() -> new EntityNotFoundException("Пользователь с ID " + request.userId() + " не найден"));
-        rolesDao.findById(request.roleId())
-                .orElseThrow(() -> new EntityNotFoundException("Роль с ID " + request.roleId() + " не найдена"));
+        userRoleService.link(request.userId(), request.roleId(), request.assignedBy());
 
-        userRoleDao.link(request.userId(), request.roleId(), request.assignedBy());
-        return mapToDto(user);
+        User user = userDao.findByIdWithRolesJoinFetch(request.userId())
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь с ID " + request.userId() + " не найден"));
+
+        return toDto(user);
     }
 
     @Override
+    @Transactional
     public UserDto revokeRole(RevokeRoleRequest request) {
-        // Одна DELETE-операция над join-таблицей — транзакция избыточна.
-        userRoleDao.unlink(request.userId(), request.roleId());
-        User user = userDao.findById(request.userId())
-                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
-        return mapToDto(user);
+        userRoleService.unlink(request.userId(), request.roleId());
+
+        User user = userDao.findByIdWithRolesJoinFetch(request.userId())
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь с ID " + request.userId() + " не найден"));
+
+        return toDto(user);
     }
 
-    private UserDto mapToDto(User user) {
-        List<UserRoleInfoDto> roles = userRoleDao.findRoleIdsByUserId(user.getId()).stream()
-                .map(roleId -> rolesDao.findById(roleId)
-                        .map(r -> new UserRoleInfoDto(r.getId(), r.getName().getValue(), LocalDateTime.now(), null))
-                        .orElse(null))
-                .filter(java.util.Objects::nonNull)
-                .collect(Collectors.toList());
+    /**
+     * Преобразование сущности User в DTO
+     */
+    private UserDto toDto(User user) {
+        List<UserRoleInfoDto> roleDtos = user.getUserRoles() == null ? List.of() :
+                user.getUserRoles().stream()
+                        .map(ur -> new UserRoleInfoDto(
+                                ur.getRole().getId(),
+                                ur.getRole().getName(), // или ur.getRole().getName().getValue(), если наименование хранится в enum
+                                ur.getAssignedAt(),
+                                ur.getAssignedBy()
+                        ))
+                        .collect(Collectors.toList());
 
-        return new UserDto(user.getId(), user.getUsername(), user.getEmail(),
-                user.getPasswordHash(), user.getRegisteredAt(), roles);
+
+        return new UserDto(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getPasswordHash(),
+                user.getRegisteredAt(),
+                roleDtos
+        );
     }
 }
