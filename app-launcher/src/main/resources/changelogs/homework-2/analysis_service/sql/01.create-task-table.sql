@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     created_at    TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMP NOT NULL DEFAULT NOW(),
     completed_at  TIMESTAMP,
-    token_used    Integer
+    token_used    Integer,
 
     CONSTRAINT tasks_status_check CHECK (
         status IN ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED')

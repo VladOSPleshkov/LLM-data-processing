@@ -1,46 +1,50 @@
 package review.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.shared.CrudController;
 import com.shared.dto.review.CreateVectorRequest;
 import com.shared.dto.review.UpdateVectorRequest;
 import com.shared.dto.review.VectorStoreDto;
 import com.shared.service.IVectorStoreService;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import com.shared.dto.DeleteStatus;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
-@Component("vectorStoreController")
-public class VectorStoreController extends AbstractReviewController
-        implements CrudController<CreateVectorRequest, VectorStoreDto, UpdateVectorRequest, UUID> {
+@RestController
+@RequestMapping("/api/v1/vectors")
+public class VectorStoreController {
 
     private final IVectorStoreService vectorStoreService;
 
-    public VectorStoreController(IVectorStoreService vectorStoreService, ObjectMapper objectMapper) {
-        super(objectMapper, "vectorStoreController");
+    public VectorStoreController(IVectorStoreService vectorStoreService) {
         this.vectorStoreService = vectorStoreService;
     }
 
-    @Override
-    public String processCreate(CreateVectorRequest request) { return toJson(vectorStoreService.createVector(request)); }
+//    @GetMapping
+//    public ResponseEntity<List<VectorStoreDto>> getAllVectors() {
+//        return ResponseEntity.ok(vectorStoreService.getAllVectors());
+//    }
 
-    @Override
-    public String processGetById(UUID id) { return toJson(vectorStoreService.getVectorById(id)); }
-
-    @Override
-    public String processGetAll() { return toJson(vectorStoreService.getAllVectors()); }
-
-    @Override
-    public String processUpdate(UUID id, UpdateVectorRequest request) { return toJson(vectorStoreService.updateVector(id, request)); }
-
-    @Override
-    public String processDelete(UUID id) {
-        boolean deleted = vectorStoreService.deleteVector(id);
-        return toJson(new DeleteStatus(deleted, "Вектор с ID " + id + " обработан"));
+    @GetMapping("/{id}")
+    public ResponseEntity<VectorStoreDto> getVectorById(@PathVariable UUID id) {
+        return ResponseEntity.ok(vectorStoreService.getVectorById(id));
     }
 
-    @Override
-    public String execute() { return "vectorStoreController активен"; }
+    @PostMapping
+    public ResponseEntity<VectorStoreDto> createVector(@RequestBody CreateVectorRequest request) {
+        VectorStoreDto created = vectorStoreService.createVector(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<VectorStoreDto> updateVector(@PathVariable UUID id, @RequestBody UpdateVectorRequest request) {
+        return ResponseEntity.ok(vectorStoreService.updateVector(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteVector(@PathVariable UUID id) {
+        vectorStoreService.deleteVector(id);
+        return ResponseEntity.noContent().build();
+    }
 }

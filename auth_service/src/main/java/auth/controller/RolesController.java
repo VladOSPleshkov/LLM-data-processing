@@ -1,45 +1,50 @@
 package auth.controller;
 
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.shared.CrudController;
 import com.shared.dto.auth.CreateRoleRequest;
 import com.shared.dto.auth.RoleDto;
 import com.shared.dto.auth.UpdateRoleRequest;
 import com.shared.service.IRolesService;
-import org.springframework.stereotype.Component;
-import com.shared.dto.DeleteStatus;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
-@Component("rolesController")
-public class RolesController extends AbstractAuthController
-        implements CrudController<CreateRoleRequest, RoleDto, UpdateRoleRequest, UUID> {
+@RestController
+@RequestMapping("/api/v1/roles")
+public class RolesController {
 
     private final IRolesService rolesService;
-    public RolesController(IRolesService rolesService, ObjectMapper objectMapper) {
-        super(objectMapper, "rolesController");
-        this.rolesService = rolesService;}
 
-    @Override
-    public String processCreate(CreateRoleRequest request) { return toJson(rolesService.createRole(request)); }
-
-    @Override
-    public String processGetById(UUID id) { return toJson(rolesService.getRoleById(id)); }
-
-    @Override
-    public String processGetAll() { return toJson(rolesService.getAllRoles()); }
-
-    @Override
-    public String processUpdate(UUID id, UpdateRoleRequest request) { return toJson(rolesService.updateRole(id, request)); }
-
-    @Override
-    public String processDelete(UUID id) {
-        boolean deleted = rolesService.deleteRole(id);
-        return toJson(new DeleteStatus(deleted, "Роль с ID " + id + " обработана"));
+    public RolesController(IRolesService rolesService) {
+        this.rolesService = rolesService;
     }
 
-    @Override
-    public String execute() { return "rolesController активен"; }
+    @GetMapping
+    public ResponseEntity<List<RoleDto>> getAllRoles() {
+        return ResponseEntity.ok(rolesService.getAllRoles());
+    }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<RoleDto> getRoleById(@PathVariable UUID id) {
+        return ResponseEntity.ok(rolesService.getRoleById(id));
+    }
+
+    @PostMapping
+    public ResponseEntity<RoleDto> createRole(@RequestBody CreateRoleRequest request) {
+        RoleDto created = rolesService.createRole(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<RoleDto> updateRole(@PathVariable UUID id, @RequestBody UpdateRoleRequest request) {
+        return ResponseEntity.ok(rolesService.updateRole(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteRole(@PathVariable UUID id) {
+        rolesService.deleteRole(id);
+        return ResponseEntity.noContent().build();
+    }
 }

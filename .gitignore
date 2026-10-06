@@ -4,7 +4,6 @@
 *.jar
 *.war
 *.ear
-*.example
 
 .idea/
 
@@ -16,4 +15,3 @@ target/
 log/
 
 
-/.aider.tags.cache.v4/

@@ -1,1 +1,1 @@
-CREATE INDEX IF NOT EXISTS idx_brands_name ON brands(name);
+CREATE INDEX IF NOT EXISTS idx_brands_name ON brands(brand_name);

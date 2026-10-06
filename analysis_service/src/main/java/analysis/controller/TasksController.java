@@ -1,73 +1,55 @@
 package analysis.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.shared.CrudController;
-import com.shared.dto.DeleteStatus;
 import com.shared.dto.analysis.CreateTaskRequest;
 import com.shared.dto.analysis.TaskDto;
 import com.shared.dto.analysis.UpdateTaskRequest;
 import com.shared.service.ITasksService;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 import java.util.UUID;
 
-@Component("tasksController")
-public class TasksController
-        implements CrudController<CreateTaskRequest, TaskDto, UpdateTaskRequest, UUID> {
+@RestController
+@RequestMapping("/api/v1/tasks")
+public class TasksController {
 
     private final ITasksService tasksService;
-    private final ObjectMapper objectMapper;
 
-    @Value("${ANALYSIS_MODULE_NAME:analysis_service}")
-    private String moduleName;
-
-    public TasksController(ITasksService tasksService, ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public TasksController(ITasksService tasksService) {
         this.tasksService = tasksService;
     }
 
-    @Override
-    public String processCreate(CreateTaskRequest request) { return toJson(tasksService.createTask(request)); }
-    @Override
-    public String processGetById(UUID id) { return toJson(tasksService.getTaskById(id)); }
-    @Override
-    public String processGetAll() { return toJson(tasksService.getAllTasks()); }
-    @Override
-    public String processUpdate(UUID id, UpdateTaskRequest request) { return toJson(tasksService.updateTask(id, request)); }
-
-    @Override
-    public String processDelete(UUID id) {
-        boolean deleted = tasksService.deleteTask(id);
-        return toJson(new DeleteStatus(deleted, "Задача с ID " + id + " обработана"));
+    @GetMapping
+    public ResponseEntity<List<TaskDto>> getAllTasks() {
+        return ResponseEntity.ok(tasksService.getAllTasks());
     }
 
-    public String processStartAnalysis(CreateTaskRequest request) {
-        return toJson(tasksService.startAnalysis(request));
+    @GetMapping("/{id}")
+    public ResponseEntity<TaskDto> getTaskById(@PathVariable UUID id) {
+        return ResponseEntity.ok(tasksService.getTaskById(id));
     }
 
-    /**
-     * Новый эндпоинт для получения задачи со встроенным TokenUsage рекордом
-     */
-    public String processGetWithUsage(UUID id) {
-        // Вызывает сервис, который собирает Tasks + TokenUsage
-        return toJson(tasksService.getTaskWithUsages(id));
+    @PostMapping
+    public ResponseEntity<TaskDto> createTask(@RequestBody CreateTaskRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(tasksService.createTask(request));
     }
 
-    @Override
-    public String getModuleName() {
-        return "";
+    @PutMapping("/{id}")
+    public ResponseEntity<TaskDto> updateTask(@PathVariable UUID id, @RequestBody UpdateTaskRequest request) {
+        return ResponseEntity.ok(tasksService.updateTask(id, request));
     }
 
-    public String execute() {
-        return moduleName + " активен";
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTask(@PathVariable UUID id) {
+        tasksService.deleteTask(id);
+        return ResponseEntity.noContent().build();
     }
 
-    protected String toJson(Object obj) {
-        try {
-            return objectMapper.writeValueAsString(obj);
-        } catch (Exception e) {
-            throw new RuntimeException("Ошибка Jackson-сериализации в " + moduleName, e);
-        }
+    @PostMapping("/start-analysis")
+    public ResponseEntity<TaskDto> startAnalysis(@RequestBody CreateTaskRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(tasksService.startAnalysis(request));
     }
 }

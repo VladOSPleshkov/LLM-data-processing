@@ -7,41 +7,44 @@ import com.shared.dto.review.BrandDto;
 import com.shared.dto.review.CreateBrandRequest;
 import com.shared.dto.review.UpdateBrandRequest;
 import com.shared.service.IBrandsService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import com.shared.dto.DeleteStatus;
+import org.springframework.web.bind.annotation.*;
+import review.service.BrandsService;
 
+import java.util.List;
 import java.util.UUID;
 
-@Component("brandsController")
-public class BrandsController extends AbstractReviewController
-        implements CrudController<CreateBrandRequest, BrandDto, UpdateBrandRequest, UUID> {
+@RestController
+@RequestMapping("/api/v1/brands")
+public class BrandsController {
 
-    private final IBrandsService brandsService;
+    private final IBrandsService brandService;
 
-    public BrandsController(IBrandsService brandsService, ObjectMapper objectMapper) {
-        super(objectMapper, "brandsController");
-        this.brandsService = brandsService;
+    public BrandsController(IBrandsService brandService) {
+        this.brandService = brandService;
     }
 
-    @Override
-    public String processCreate(CreateBrandRequest request) { return toJson(brandsService.createBrand(request)); }
-
-    @Override
-    public String processGetById(UUID id) { return toJson(brandsService.getBrandById(id)); }
-
-    @Override
-    public String processGetAll() { return toJson(brandsService.getAllBrands()); }
-
-    @Override
-    public String processUpdate(UUID id, UpdateBrandRequest request) { return toJson(brandsService.updateBrand(id, request)); }
-
-    @Override
-    public String processDelete(UUID id) {
-        boolean deleted = brandsService.deleteBrand(id);
-        return toJson(new DeleteStatus(deleted, "Бренд с ID " + id + " обработан"));
+    @GetMapping
+    public ResponseEntity<List<BrandDto>> getAllBrands() {
+        return ResponseEntity.ok(brandService.getAllBrands());
     }
 
-    @Override
-    public String execute() { return "brandsController активен"; }
+    @GetMapping("/{id}")
+    public ResponseEntity<BrandDto> getBrandById(@PathVariable UUID id) {
+        return ResponseEntity.ok(brandService.getBrandById(id));
+    }
 
+    @PostMapping
+    public ResponseEntity<BrandDto> createBrand(@RequestBody CreateBrandRequest brandRequest) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(brandService.createBrand(brandRequest));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteBrand(@PathVariable UUID id) {
+        brandService.deleteBrand(id);
+        return ResponseEntity.noContent().build();
+    }
 }

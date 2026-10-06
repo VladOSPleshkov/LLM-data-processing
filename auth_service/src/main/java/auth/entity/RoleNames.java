@@ -9,8 +9,8 @@ import java.util.Arrays;
 @Getter
 @RequiredArgsConstructor
 public enum RoleNames {
-    ADMIN("ROLE_ADMIN"),
-    USER("ROLE_USER");
+    ROLE_ADMIN("ROLE_ADMIN"),
+    ROLE_MANAGER("ROLE_MANAGER");
 
     @JsonValue
     private final String value;

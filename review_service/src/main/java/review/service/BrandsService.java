@@ -7,9 +7,10 @@ import com.shared.dto.review.UpdateBrandRequest;
 import com.shared.exception.EntityNotFoundException;
 import com.shared.service.IBrandsService;
 import org.springframework.stereotype.Component;
-import review.dao.IBrandsDao;
-import review.dao.IReviewDao;
+import org.springframework.transaction.annotation.Transactional;
+import review.dao.BrandsDao;
 import review.entity.Brands;
+import review.exception.BrandsNotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,15 +20,14 @@ import java.util.UUID;
 @Component("brandsService")
 public class BrandsService implements IBrandsService {
 
-    private final IBrandsDao brandsDao;
-    private final IReviewDao reviewDao;
+    private final BrandsDao brandsDao;
 
-    public BrandsService(IBrandsDao brandsDao, IReviewDao reviewDao) {
+    public BrandsService(BrandsDao brandsDao) {
         this.brandsDao = brandsDao;
-        this.reviewDao = reviewDao;
     }
 
     @Override
+    @Transactional("reviewTransactionManager")
     public BrandDto createBrand(CreateBrandRequest request) {
         Brands entity = Brands.builder()
                 .brandName(request.brandName())
@@ -38,43 +38,54 @@ public class BrandsService implements IBrandsService {
     }
 
     @Override
+    @Transactional(value = "reviewTransactionManager",readOnly = true)
     public BrandDto getBrandById(UUID id) {
         Brands brand = brandsDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Бренд с ID " + id + " не найден"));
+                .orElseThrow(() -> new BrandsNotFoundException(id));
         return mapToDto(brand);
     }
 
     @Override
+    @Transactional(value = "reviewTransactionManager", readOnly = true)
     public List<BrandDto> getAllBrands() {
         List<BrandDto> result = new ArrayList<>();
-        for (Brands brand : brandsDao.findAll()) result.add(mapToDto(brand));
+        for (Brands brand : brandsDao.findAll()) {
+            result.add(mapToDto(brand));
+        }
         return result;
     }
 
     @Override
+    @Transactional("reviewTransactionManager")
     public BrandDto updateBrand(UUID id, UpdateBrandRequest request) {
         Brands existing = brandsDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Бренд с ID " + id + " не найден"));
+                .orElseThrow(() -> new BrandsNotFoundException(id));
 
-        Brands updated = Brands.builder()
-                .id(existing.getId())
-                .brandName(existing.getBrandName())
-                .description(request.description() != null ? request.description() : existing.getDescription())
-                .createdAt(existing.getCreatedAt())
-                .build();
+        if (request.description() != null) {
+            existing.setDescription(request.description());
+        }
 
-        brandsDao.update(updated);
-        return mapToDto(updated);
+        return mapToDto(existing);
     }
 
     @Override
-    public boolean deleteBrand(UUID id) { return brandsDao.deleteById(id); }
+    @Transactional("reviewTransactionManager")
+    public boolean deleteBrand(UUID id) {
+        if (brandsDao.findById(id).isEmpty()) {
+            return false;
+        }
+        brandsDao.deleteById(id);
+        return true;
+    }
 
     private BrandDto mapToDto(Brands brand) {
-        long reviewsCount = reviewDao.readAll().stream()
-                .filter(r -> r.getBrandId().equals(brand.getId()))
-                .count();
-        return new BrandDto(brand.getId(), brand.getBrandName(), brand.getDescription(),
-                brand.getCreatedAt(), (int) reviewsCount);
+        long reviewsCount = brandsDao.countReviewsByBrandId(brand.getId());
+        return new BrandDto(
+                brand.getId(),
+                brand.getBrandName(),
+                brand.getDescription(),
+                brand.getCreatedAt(),
+                (int) reviewsCount
+        );
     }
 }

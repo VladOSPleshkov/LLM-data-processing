@@ -1,68 +1,60 @@
 package auth.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.shared.CrudController;
 import com.shared.dto.auth.UpdateUserRequest;
 import com.shared.dto.auth.UserDto;
 import com.shared.dto.auth.CreateUserRequest;
-import com.shared.dto.auth.AssignRoleRequest;
-import com.shared.dto.auth.RevokeRoleRequest;
 import com.shared.service.IUserService;
-import com.shared.dto.DeleteStatus;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
+import java.util.List;
 import java.util.UUID;
 
-@Component("userController")
-public class UserController extends AbstractAuthController
-        implements CrudController<CreateUserRequest, UserDto, UpdateUserRequest, UUID> {
+@RestController
+@RequestMapping("/api/v1/users")
+public class UserController {
 
     private final IUserService userService;
 
-    public UserController(IUserService userService, ObjectMapper objectMapper) {
-        super(objectMapper, "userController");
+    public UserController(IUserService userService) {
         this.userService = userService;
     }
 
-    @Override
-    public String processCreate(CreateUserRequest request) {
-        return toJson(userService.createUser(request));
+    @PostMapping
+    public ResponseEntity<UserDto> processCreate(@RequestBody CreateUserRequest request) {
+        UserDto created = userService.createUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    @Override
-    public String processGetById(UUID id) {
-        return toJson(userService.getUserById(id));
+    @GetMapping("/{id}")
+    public ResponseEntity<UserDto> processGetById(@PathVariable UUID id) {
+        return ResponseEntity.ok(userService.getUserById(id));
     }
 
-    @Override
-    public String processGetAll() {
-        return toJson(userService.getAllUsers());
+    @GetMapping
+    public ResponseEntity<List<UserDto>> processGetAll() {
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    @Override
-    public String processUpdate(UUID id, UpdateUserRequest request) {
-        return toJson(userService.updateUser(id, request));
+    @PutMapping("/{id}")
+    public ResponseEntity<UserDto> processUpdate(@PathVariable UUID id, @RequestBody UpdateUserRequest request) {
+        return ResponseEntity.ok(userService.updateUser(id, request));
     }
 
-    @Override
-    public String processDelete(UUID id) {
-        boolean deleted = userService.deleteUser(id);
-        return toJson(new DeleteStatus(deleted, "Пользователь c ID " + id + " обработан"));
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void>  processDelete(UUID id) {
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
     }
 
-    /** Доп. вариант использования сервиса — назначение роли (many-to-many). */
-    public String processAssignRole(AssignRoleRequest request) {
-        return toJson(userService.assignRole(request));
-    }
-
-    /** Доп. вариант использования сервиса — отзыв роли (many-to-many). */
-    public String processRevokeRole(RevokeRoleRequest request) {
-        return toJson(userService.revokeRole(request));
-    }
-
-    @Override
-    public String execute() { return "userController активен"; }
-
+//    @PostMapping("/{id}/roles/{roleName}")
+//    public ResponseEntity<UserDto> assignRole(@PathVariable UUID id, @PathVariable String roleName) {
+//        return ResponseEntity.ok(userService.assignRoleToUser(id, roleName));
+//    }
+//
+//    @DeleteMapping("/{id}/roles/{roleName}")
+//    public ResponseEntity<UserDto> revokeRole(@PathVariable UUID id, @PathVariable String roleName) {
+//        return ResponseEntity.ok(userService.revokeRoleFromUser(id, roleName));
+//    }
 }

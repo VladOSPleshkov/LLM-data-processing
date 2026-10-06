@@ -1,31 +1,69 @@
 package review.entity;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Column;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Convert;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.FetchType;
+
 import lombok.Getter;
+import lombok.Setter;
+import lombok.Builder;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
+import org.hibernate.annotations.ColumnTransformer;
 
 import java.util.Objects;
 import java.util.UUID;
 
+@Entity
+@Table(name = "vector_store")
 @Getter
+@Setter
 @Builder(toBuilder = true)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class VectorStore {
 
-    private final UUID id;
-    private final String metadata;
-    private final float[] embedding;
-    private final UUID reviewsId; // FK 1:1 на Reviews.id
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(name = "metadata")
+    private String metadata;
+
+    @Convert(converter = FloatArrayConverter.class)
+    @ColumnTransformer(write = "?::vector")
+    @Column(name = "embedding")
+    private float[] embedding;
+
+    /** Владеющая сторона OneToOne: FK review_id уникален -> 1:1. */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "review_id", nullable = false, unique = true)
+    private Reviews review;
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof VectorStore that)) return false;
-        return id != null && Objects.equals(id, that.id);
+        if (o == null) return false;
+        if (org.hibernate.Hibernate.getClass(this) != org.hibernate.Hibernate.getClass(o)) {
+            return false;
+        }
+        VectorStore that = (VectorStore) o;
+        if (getId() == null || that.getId() == null) {
+            return false;
+        }
+        return Objects.equals(getId(), that.getId());
     }
 
     @Override
-    public int hashCode() { return VectorStore.class.hashCode(); }
-
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 }
