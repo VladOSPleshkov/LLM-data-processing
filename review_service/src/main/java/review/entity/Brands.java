@@ -52,12 +52,12 @@ public class Brands {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Brands brands)) return false;
-        return id != null && Objects.equals(id, brands.id);
+        if (!(o instanceof Brands that)) return false;
+        return getId() != null && Objects.equals(getId(), that.getId());
     }
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return Objects.hash(id);
     }
 }

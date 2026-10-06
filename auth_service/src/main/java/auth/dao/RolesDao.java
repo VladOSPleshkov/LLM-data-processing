@@ -16,10 +16,6 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * DAO ролей. Аналогично UserDao демонстрирует все три подхода к устранению N+1,
- * но со стороны Roles -> userRoles -> user.
- */
 @Repository
 public class RolesDao extends AbstractDao<Roles, UUID> {
 
@@ -27,7 +23,6 @@ public class RolesDao extends AbstractDao<Roles, UUID> {
         super(Roles.class);
     }
 
-    /** Способ 1: JPQL JOIN FETCH. */
     public Optional<Roles> findByIdWithUsersJoinFetch(UUID id) {
         String jpql = """
                 SELECT DISTINCT r
@@ -41,7 +36,6 @@ public class RolesDao extends AbstractDao<Roles, UUID> {
         return query.getResultStream().findFirst();
     }
 
-    /** Способ 2: статический @NamedEntityGraph "Roles.withUserRoles". */
     public Optional<Roles> findByIdWithNamedEntityGraph(UUID id) {
         EntityGraph<?> graph = entityManager.getEntityGraph("Roles.withUserRoles");
 
@@ -52,7 +46,6 @@ public class RolesDao extends AbstractDao<Roles, UUID> {
         return query.getResultStream().findFirst();
     }
 
-    /** Способ 3: динамический EntityGraph через метамодель Roles_ / UserRoles_. */
     public Optional<Roles> findByIdWithDynamicEntityGraph(UUID id) {
         EntityGraph<Roles> graph = entityManager.createEntityGraph(Roles.class);
         Subgraph<UserRoles> userRolesSubgraph = graph.addSubgraph(Roles_.userRoles.getName(), UserRoles.class);
@@ -65,7 +58,6 @@ public class RolesDao extends AbstractDao<Roles, UUID> {
         return query.getResultStream().findFirst();
     }
 
-    /** Criteria API + метамодель. */
     public Optional<Roles> findByName(String name) {
         String jpql = "SELECT r FROM Roles r WHERE r.name = :name";
         return entityManager.createQuery(jpql, Roles.class)

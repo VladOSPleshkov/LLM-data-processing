@@ -40,7 +40,6 @@ public class Categories {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    /** Неосновная (inverse) сторона ManyToMany. mappedBy -> владеет Reviews. */
     @Builder.Default
     @ManyToMany(mappedBy = "categories", fetch = FetchType.LAZY)
     private Set<Reviews> reviews = new HashSet<>();
@@ -49,11 +48,11 @@ public class Categories {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Categories that)) return false;
-        return id != null && Objects.equals(id, that.id);
+        return getId() != null && Objects.equals(getId(), that.getId());
     }
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return Objects.hash(id);
     }
 }

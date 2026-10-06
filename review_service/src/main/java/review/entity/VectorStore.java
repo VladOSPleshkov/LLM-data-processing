@@ -17,6 +17,7 @@ import lombok.Builder;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.AccessLevel;
+import org.hibernate.annotations.ColumnTransformer;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -34,11 +35,12 @@ public class VectorStore {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "metadata")
     private String metadata;
 
     @Convert(converter = FloatArrayConverter.class)
-    @Column(name = "embedding", columnDefinition = "TEXT")
+    @ColumnTransformer(write = "?::vector")
+    @Column(name = "embedding")
     private float[] embedding;
 
     /** Владеющая сторона OneToOne: FK review_id уникален -> 1:1. */
@@ -49,12 +51,19 @@ public class VectorStore {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof VectorStore that)) return false;
-        return id != null && Objects.equals(id, that.id);
+        if (o == null) return false;
+        if (org.hibernate.Hibernate.getClass(this) != org.hibernate.Hibernate.getClass(o)) {
+            return false;
+        }
+        VectorStore that = (VectorStore) o;
+        if (getId() == null || that.getId() == null) {
+            return false;
+        }
+        return Objects.equals(getId(), that.getId());
     }
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return Objects.hash(id);
     }
 }

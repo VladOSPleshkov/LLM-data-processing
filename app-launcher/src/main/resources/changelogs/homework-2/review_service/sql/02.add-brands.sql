@@ -1,4 +1,4 @@
-INSERT INTO brands (id, name, description, created_at) VALUES
+INSERT INTO brands (id, brand_name, description, created_at) VALUES
     ('a1b2c3d4-0001-0001-0001-000000000001',
      'Samsung',
      'Южнокорейский производитель электроники',

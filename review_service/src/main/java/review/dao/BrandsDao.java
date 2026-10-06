@@ -1,6 +1,8 @@
 package review.dao;
 
 import com.shared.dao.AbstractDao;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import org.springframework.stereotype.Repository;
 import review.entity.Brands;
@@ -8,12 +10,18 @@ import review.entity.Brands;
 import java.util.Optional;
 import java.util.UUID;
 
+import static review.entity.Brands_.brandName;
+
 @Repository
-public class BrandsDao extends AbstractDao<Brands, UUID> {
+public class BrandsDao extends AbstractReviewDao<Brands, UUID> {
 
     public BrandsDao() {
         super(Brands.class);
     }
+    @Override
+    @PersistenceContext(unitName = "reviewUnit")
+    public void setEntityManager(EntityManager entityManager) {
+        super.setEntityManager(entityManager); }
 
     public Optional<Brands> findByName(String brandName) {
         TypedQuery<Brands> query = entityManager.createQuery(
@@ -22,7 +30,6 @@ public class BrandsDao extends AbstractDao<Brands, UUID> {
         return query.getResultStream().findFirst();
     }
 
-    /** Количество отзывов по бренду — одним агрегирующим JPQL-запросом, без загрузки коллекции. */
     public long countReviewsByBrandId(UUID brandId) {
         TypedQuery<Long> query = entityManager.createQuery(
                 "SELECT COUNT(r) FROM Reviews r WHERE r.brand.id = :brandId", Long.class);

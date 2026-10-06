@@ -13,7 +13,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Builder(toBuilder = true)
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@AllArgsConstructor(access = AccessLevel.PUBLIC)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @NamedEntityGraph( name = "User.withRoles",
         attributeNodes = @NamedAttributeNode(value = "userRoles", subgraph = "userRoles-role"),
@@ -35,6 +35,9 @@ public class User {
     @Column(name = "registered_at", nullable = false)
     private LocalDateTime registeredAt;
 
+    @Column(nullable = false)
+    private boolean enabled;
+
     @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<UserRoles> userRoles = new HashSet<>();
@@ -42,11 +45,11 @@ public class User {
     public void addRole(Roles role, UUID assignedBy) {
         boolean alreadyExists = this.userRoles.stream()
                 .anyMatch(ur -> ur.getRole().getId().equals(role.getId()));
-        if (!alreadyExists) { UserRoles userRole = UserRoles.of(this, role, assignedBy);
-            this.userRoles.add(userRole); }
-        UserRoles link = UserRoles.of(this, role, assignedBy);
-        this.userRoles.add(link);
-        role.getUserRoles().add(link);
+        if (!alreadyExists) {
+            UserRoles userRole = UserRoles.of(this, role, assignedBy);
+            this.userRoles.add(userRole);
+            role.getUserRoles().add(userRole);
+        }
     }
 
     public void removeRole(Roles role) {
@@ -57,10 +60,12 @@ public class User {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof User user)) return false;
-        return id != null && Objects.equals(id, user.id);
+        if (!(o instanceof User that)) return false;
+        return getEmail() != null && Objects.equals(getEmail(), that.getEmail());
     }
 
     @Override
-    public int hashCode() { return User.class.hashCode(); }
+    public int hashCode() {
+        return Objects.hash(getEmail());
+    }
 }

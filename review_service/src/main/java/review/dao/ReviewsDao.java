@@ -11,14 +11,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * DAO отзывов. Основной сценарий выборки (getById/getAll) собирает
- * brand + categories + vectorStore ЗА ОДИН SQL-запрос через LEFT JOIN FETCH,
- * что полностью устраняет проблему N+1, присутствовавшую в legacy-версии
- * (там категории и вектор дотягивались по отдельным DAO-вызовам в цикле).
- */
 @Repository
-public class ReviewsDao extends AbstractDao<Reviews, UUID> {
+public class ReviewsDao extends AbstractReviewDao<Reviews, UUID> {
 
     @PersistenceContext(unitName = "reviewUnit")
     protected EntityManager entityManager;
@@ -26,7 +20,6 @@ public class ReviewsDao extends AbstractDao<Reviews, UUID> {
         super(Reviews.class);
     }
 
-    /** Одиночная выборка со всеми ленивыми ассоциациями за 1 запрос. */
     public Optional<Reviews> findByIdWithDetails(UUID id) {
         String jpql = """
                 SELECT DISTINCT r
@@ -41,7 +34,6 @@ public class ReviewsDao extends AbstractDao<Reviews, UUID> {
         return query.getResultStream().findFirst();
     }
 
-    /** Массовая выборка со всеми ленивыми ассоциациями за 1 запрос. */
     public List<Reviews> findAllWithDetails() {
         String jpql = """
                 SELECT DISTINCT r

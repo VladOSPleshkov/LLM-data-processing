@@ -6,6 +6,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
@@ -20,7 +21,6 @@ public class Tasks {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @EqualsAndHashCode.Include
     private UUID id;
 
     @Column(name = "brand_id", nullable = false)
@@ -64,10 +64,12 @@ public class Tasks {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Tasks tasks = (Tasks) o;
-        return id != null && id.equals(tasks.id);
+        if (!(o instanceof Tasks that)) return false;
+        return getId() != null && Objects.equals(getId(), that.getId());
     }
+
     @Override
-    public int hashCode() { return Tasks.class.hashCode(); }
+    public int hashCode() {
+        return Objects.hash(getId());
+    }
 }

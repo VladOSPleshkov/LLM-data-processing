@@ -46,12 +46,19 @@ public class Roles {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Roles roles)) return false;
-        return id != null && Objects.equals(id, roles.id);
+        if (o == null) return false;
+        if (org.hibernate.Hibernate.getClass(this) != org.hibernate.Hibernate.getClass(o)) {
+            return false;
+        }
+        Roles that = (Roles) o;
+        if (getId() == null || that.getId() == null) {
+            return false;
+        }
+        return Objects.equals(getId(), that.getId());
     }
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return Objects.hash(getId());
     }
 }

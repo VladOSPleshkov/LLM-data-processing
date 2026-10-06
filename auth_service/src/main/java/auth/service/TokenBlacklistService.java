@@ -3,6 +3,7 @@ package auth.service;
 import auth.dao.TokenBlacklistDao;
 import auth.dao.TokenBlacklistDao;
 import auth.entity.RefreshTokenBlacklist;
+import auth.exception.TokenBlacklistNotFoundException;
 import com.shared.dto.auth.CreateBlacklistTokenRequest;
 import com.shared.dto.auth.RefreshTokenBlacklistDto;
 import com.shared.dto.auth.UpdateBlacklistTokenRequest;
@@ -42,7 +43,7 @@ public class TokenBlacklistService implements ITokenBlacklistService {
     @Transactional(readOnly = true)
     public RefreshTokenBlacklistDto getById(UUID id) {
         RefreshTokenBlacklist entity = tokenBlacklistDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Запись блэклиста с ID " + id + " не найдена"));
+                .orElseThrow(() -> new TokenBlacklistNotFoundException(id));
         return toDto(entity);
     }
 
@@ -68,7 +69,7 @@ public class TokenBlacklistService implements ITokenBlacklistService {
     @Transactional
     public RefreshTokenBlacklistDto update(UUID id, UpdateBlacklistTokenRequest request) {
         RefreshTokenBlacklist entity = tokenBlacklistDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Запись блэклиста с ID " + id + " не найдена"));
+                .orElseThrow(() -> new TokenBlacklistNotFoundException(id));
 
         entity.setExpiresAt(request.expiresAt());
         return toDto(entity);

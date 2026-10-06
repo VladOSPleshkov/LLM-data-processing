@@ -1,6 +1,29 @@
-version: '3.8'
-
 services:
+  app:
+    build:
+      context: .
+      dockerfile: app-launcher/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - AUTH_DB_URL=jdbc:postgresql://auth-postgres:5432/${AUTH_DB_NAME}
+      - AUTH_DB_USER=${AUTH_DB_USER}
+      - AUTH_DB_PASS=${AUTH_DB_PASS}
+
+      - ANALYSIS_DB_URL=jdbc:postgresql://analysis-postgres:5432/${ANALYSIS_DB_NAME}
+      - ANALYSIS_DB_USER=${ANALYSIS_DB_USER}
+      - ANALYSIS_DB_PASS=${ANALYSIS_DB_PASS}
+
+      - REVIEW_DB_URL=jdbc:postgresql://review-postgres:5432/${REVIEW_DB_NAME}
+      - REVIEW_DB_USER=${REVIEW_DB_USER}
+      - REVIEW_DB_PASS=${REVIEW_DB_PASS}
+    depends_on:
+      auth-liquibase:
+        condition: service_completed_successfully
+      analysis-liquibase:
+        condition: service_completed_successfully
+      review-liquibase:
+        condition: service_completed_successfully
 
   # ==================== AUTH ====================
 
@@ -28,7 +51,7 @@ services:
       auth-postgres:
         condition: service_healthy
     volumes:
-      - .:/liquibase/changelog
+      - ./app-launcher/src/main/resources:/liquibase/changelog
     command: >
       --driver=org.postgresql.Driver
       --url=jdbc:postgresql://auth-postgres:5432/${AUTH_DB_NAME}
@@ -64,7 +87,7 @@ services:
       review-postgres:
         condition: service_healthy
     volumes:
-      - .:/liquibase/changelog
+      - ./app-launcher/src/main/resources:/liquibase/changelog
     command: >
       --driver=org.postgresql.Driver
       --url=jdbc:postgresql://review-postgres:5432/${REVIEW_DB_NAME}
@@ -100,7 +123,7 @@ services:
       analysis-postgres:
         condition: service_healthy
     volumes:
-      - .:/liquibase/changelog
+      - ./app-launcher/src/main/resources:/liquibase/changelog
     command: >
       --driver=org.postgresql.Driver
       --url=jdbc:postgresql://analysis-postgres:5432/${ANALYSIS_DB_NAME}

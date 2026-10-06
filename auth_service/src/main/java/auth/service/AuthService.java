@@ -5,88 +5,87 @@ import auth.dao.UserDao;
 import auth.entity.RoleNames;
 import auth.entity.Roles;
 import auth.entity.User;
+import auth.exception.UserNotFoundException;
+import auth.mapper.UserMapper;
 import com.shared.dto.auth.AuthRequest;
 import com.shared.dto.auth.AuthResponse;
 import com.shared.exception.EntityNotFoundException;
 import com.shared.service.IAuthService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-//@Component("authService")
+@Slf4j
 @Service("authService")
+@RequiredArgsConstructor
 public class AuthService implements IAuthService {
 
     private final UserDao userDao;
     private final RolesDao rolesDao;
-
-    public AuthService(UserDao userDao, RolesDao rolesDao) {
-        this.userDao = userDao;
-        this.rolesDao = rolesDao;
-    }
+    private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
     @Override
     @Transactional
     public AuthResponse register(AuthRequest request) {
-        // 1. Создаем сущность нового пользователя
+        if (userDao.findByUsername(request.username()).isPresent()) {
+            throw new UserNotFoundException(request.username());
+        }
+
         User newUser = User.builder()
                 .username(request.username())
-                .passwordHash(request.passwordHash())
+                .passwordHash(passwordEncoder.encode(request.password()))
                 .email(request.email())
                 .registeredAt(LocalDateTime.now())
                 .build();
 
-        // 2. Сохраняем пользователя (переходит в состояние Managed)
+        // Persist выполняется ВНУТРИ транзакции, открытой TransactionInterceptor'ом
+        // для этого метода (транзакция привязана к authTransactionManager, т.к. он @Primary).
         User savedUser = userDao.save(newUser);
 
-        // 3. Назначаем запрошенные роли
-        List<String> requestedRoles = request.roles() == null ? List.of() : request.roles();
+        List<String> requestedRoles = (request.roles() == null || request.roles().isEmpty())
+                ? List.of(RoleNames.ROLE_MANAGER.getValue())
+                : request.roles();
+
         for (String roleNameStr : requestedRoles) {
             RoleNames roleName = RoleNames.fromValue(roleNameStr);
-
-            Roles role = rolesDao.findByName(String.valueOf(roleName))
+            Roles role = rolesDao.findByName(roleName.getValue())
                     .orElseGet(() -> rolesDao.save(Roles.builder()
-                            .name(String.valueOf(roleName))
+                            .name(roleName.getValue())
                             .description("Автоматически создана при регистрации")
                             .build()));
-
-            // Добавляем связь через метод сущности — каскад сохрани запись в user_roles
             savedUser.addRole(role, savedUser.getId());
         }
+        // в текущем persistence context, а CascadeType.ALL на User.userRoles
+        // гарантирует persist новых UserRoles при флаше/коммите транзакции.
 
-        // userDao.update() НЕ ТРЕБУЕТСЯ — Hibernate применит Dirty Checking при завершении транзакции
-        return new AuthResponse(
-                savedUser.getId(),
-                savedUser.getUsername(),
-                requestedRoles
-        );
+        log.info("Зарегистрирован новый пользователь: {}", savedUser.getUsername());
+        return userMapper.toAuthResponse(savedUser);
     }
 
     @Override
     @Transactional(readOnly = true)
     public AuthResponse login(AuthRequest request) {
-        // Ищем пользователя по логину или email
         User user = userDao.findByUsername(request.username())
-                .or(() -> userDao.findByEmail(request.email()))
-                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
+                .or(() -> request.email() != null ? userDao.findByEmail(request.email()) : Optional.empty())
+                .orElseThrow(() -> new BadCredentialsException("Неверное имя пользователя или пароль"));
 
-        // Подгружаем пользователя с его ролями за 1 SQL-запрос через JOIN FETCH / EntityGraph
-        User userWithRoles = userDao.findByIdWithRolesJoinFetch(user.getId())
-                .orElse(user);
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            throw new BadCredentialsException("Неверное имя пользователя или пароль");
+        }
 
-        List<String> roleNames = userWithRoles.getUserRoles().stream()
-                .map(ur -> ur.getRole().getName())
-                .collect(Collectors.toList());
-
-        return new AuthResponse(
-                userWithRoles.getId(),
-                userWithRoles.getUsername(),
-                roleNames
-        );
+        User userWithRoles = userDao.findByIdWithRolesJoinFetch(user.getId()).orElse(user);
+        return userMapper.toAuthResponse(userWithRoles);
     }
 }

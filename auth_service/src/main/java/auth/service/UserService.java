@@ -5,9 +5,13 @@ import auth.dao.UserDao;
 import auth.entity.RoleNames;
 import auth.entity.Roles;
 import auth.entity.User;
+import auth.exception.RoleNotFoundException;
+import auth.exception.UserNotFoundException;
+import auth.mapper.UserMapper;
 import com.shared.dto.auth.*;
 import com.shared.exception.EntityNotFoundException;
 import com.shared.service.IUserService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,20 +21,16 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service("userService")
+@RequiredArgsConstructor
 public class UserService implements IUserService {
 
     private final UserDao userDao;
-    private final UserRoleService userRoleService;
-
-    public UserService(UserDao userDao, UserRoleService userRoleService) {
-        this.userDao = userDao;
-        this.userRoleService = userRoleService;
-    }
+    private final RolesDao rolesDao;
+    private final UserMapper userMapper;
 
     @Override
     @Transactional
     public UserDto createUser(CreateUserRequest request) {
-        // 1. Создаем пользователя
         User user = User.builder()
                 .username(request.username())
                 .passwordHash(request.passwordHash())
@@ -40,39 +40,30 @@ public class UserService implements IUserService {
 
         User savedUser = userDao.save(user);
 
-        // 2. Привязываем роли через агрегат User (addRole), без ролиDao
-        if (request.roleNames() != null && !request.roleNames().isEmpty()) {
+        if (request.roleNames() != null) {
             for (String roleNameStr : request.roleNames()) {
                 RoleNames roleName = RoleNames.fromValue(roleNameStr);
-
-                Roles role = userDao.getEntityManager()
-                        .createQuery("SELECT r FROM Roles r WHERE r.name = :name", Roles.class)
-                        .setParameter("name", roleName.getValue())
-                        .getResultStream()
-                        .findFirst()
-                        .orElseThrow(() -> new EntityNotFoundException("Роль " + roleNameStr + " не найдена"));
-
+                Roles role = rolesDao.findByName(roleName.getValue())
+                        .orElseThrow(() -> RoleNotFoundException.byName(roleNameStr));
                 savedUser.addRole(role, savedUser.getId());
             }
         }
 
-        return toDto(savedUser);
+        return userMapper.toDto(savedUser);
     }
 
     @Override
     @Transactional(readOnly = true)
     public UserDto getUserById(UUID id) {
-        User user = userDao.findByIdWithRolesJoinFetch(id)
-                .orElseThrow(() -> new EntityNotFoundException("Пользователь с ID " + id + " не найден"));
-        return toDto(user);
+        return userMapper.toDto(userDao.findByIdWithRolesJoinFetch(id)
+                .orElseThrow(() -> new UserNotFoundException(id)));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<UserDto> getAllUsers() {
-        // Используем EntityGraph для подгрузки ролей за 1 SQL-запрос
         return userDao.findAllWithRoles().stream()
-                .map(this::toDto)
+                .map(userMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -80,7 +71,7 @@ public class UserService implements IUserService {
     @Transactional
     public UserDto updateUser(UUID id, UpdateUserRequest request) {
         User user = userDao.findByIdWithRolesJoinFetch(id)
-                .orElseThrow(() -> new EntityNotFoundException("Пользователь с ID " + id + " не найден"));
+                .orElseThrow(() -> new UserNotFoundException(id));
 
         if (request.username() != null) {
             user.setUsername(request.username());
@@ -88,8 +79,7 @@ public class UserService implements IUserService {
         if (request.email() != null) {
             user.setEmail(request.email());
         }
-
-        return toDto(user);
+        return userMapper.toDto(user);
     }
 
     @Override
@@ -101,47 +91,24 @@ public class UserService implements IUserService {
     @Override
     @Transactional
     public UserDto assignRole(AssignRoleRequest request) {
-        userRoleService.link(request.userId(), request.roleId(), request.assignedBy());
-
         User user = userDao.findByIdWithRolesJoinFetch(request.userId())
-                .orElseThrow(() -> new EntityNotFoundException("Пользователь с ID " + request.userId() + " не найден"));
+                .orElseThrow(() -> new UserNotFoundException(request.userId()));
+        Roles role = rolesDao.findById(request.roleId())
+                .orElseThrow(() -> new RoleNotFoundException(request.roleId()));
 
-        return toDto(user);
+        user.addRole(role, request.assignedBy());
+        return userMapper.toDto(user);
     }
 
     @Override
     @Transactional
     public UserDto revokeRole(RevokeRoleRequest request) {
-        userRoleService.unlink(request.userId(), request.roleId());
-
         User user = userDao.findByIdWithRolesJoinFetch(request.userId())
-                .orElseThrow(() -> new EntityNotFoundException("Пользователь с ID " + request.userId() + " не найден"));
+                .orElseThrow(() -> new UserNotFoundException(request.userId()));
+        Roles role = rolesDao.findById(request.roleId())
+                .orElseThrow(() -> new RoleNotFoundException(request.roleId()));
 
-        return toDto(user);
-    }
-
-    /**
-     * Преобразование сущности User в DTO
-     */
-    private UserDto toDto(User user) {
-        List<UserRoleInfoDto> roleDtos = user.getUserRoles() == null ? List.of() :
-                user.getUserRoles().stream()
-                        .map(ur -> new UserRoleInfoDto(
-                                ur.getRole().getId(),
-                                ur.getRole().getName(), // или ur.getRole().getName().getValue(), если наименование хранится в enum
-                                ur.getAssignedAt(),
-                                ur.getAssignedBy()
-                        ))
-                        .collect(Collectors.toList());
-
-
-        return new UserDto(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getPasswordHash(),
-                user.getRegisteredAt(),
-                roleDtos
-        );
+        user.removeRole(role);
+        return userMapper.toDto(user);
     }
 }

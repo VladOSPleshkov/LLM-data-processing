@@ -41,14 +41,17 @@ public abstract class AbstractDao<T, ID extends Serializable> {
         return entityManager.merge(entity);
     }
 
-    /** Удаление переданной (возможно detached) сущности. */
     public void delete(T entity) {
         T managed = entityManager.contains(entity) ? entity : entityManager.merge(entity);
         entityManager.remove(managed);
     }
 
     public boolean deleteById(ID id) {
-        findById(id).ifPresent(this::delete);
+        Optional<T> entity = findById(id);
+        if (entity.isPresent()) {
+            delete(entity.get());
+            return true;
+        }
         return false;
     }
 

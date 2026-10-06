@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import review.dao.BrandsDao;
 import review.entity.Brands;
+import review.exception.BrandsNotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -26,7 +27,7 @@ public class BrandsService implements IBrandsService {
     }
 
     @Override
-    @Transactional
+    @Transactional("reviewTransactionManager")
     public BrandDto createBrand(CreateBrandRequest request) {
         Brands entity = Brands.builder()
                 .brandName(request.brandName())
@@ -37,15 +38,15 @@ public class BrandsService implements IBrandsService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(value = "reviewTransactionManager",readOnly = true)
     public BrandDto getBrandById(UUID id) {
         Brands brand = brandsDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Бренд с ID " + id + " не найден"));
+                .orElseThrow(() -> new BrandsNotFoundException(id));
         return mapToDto(brand);
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(value = "reviewTransactionManager", readOnly = true)
     public List<BrandDto> getAllBrands() {
         List<BrandDto> result = new ArrayList<>();
         for (Brands brand : brandsDao.findAll()) {
@@ -55,23 +56,22 @@ public class BrandsService implements IBrandsService {
     }
 
     @Override
-    @Transactional
+    @Transactional("reviewTransactionManager")
     public BrandDto updateBrand(UUID id, UpdateBrandRequest request) {
         Brands existing = brandsDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Бренд с ID " + id + " не найден"));
+                .orElseThrow(() -> new BrandsNotFoundException(id));
 
         if (request.description() != null) {
             existing.setDescription(request.description());
         }
-        // merge не обязателен — сущность управляема (managed) в текущей транзакции,
-        // изменения будут сброшены в БД автоматически при коммите (dirty checking).
+
         return mapToDto(existing);
     }
 
     @Override
-    @Transactional
+    @Transactional("reviewTransactionManager")
     public boolean deleteBrand(UUID id) {
-        if (!brandsDao.findById(id).isPresent()) {
+        if (brandsDao.findById(id).isEmpty()) {
             return false;
         }
         brandsDao.deleteById(id);

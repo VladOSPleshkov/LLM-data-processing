@@ -18,9 +18,8 @@ import java.util.UUID;
 public class RefreshTokenBlacklist {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    //@EqualsAndHashCode.Include
-    private UUID id;
+    @Builder.Default
+    private UUID id = UUID.randomUUID();
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
@@ -38,14 +37,20 @@ public class RefreshTokenBlacklist {
     private String revokeReason;
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof RefreshTokenBlacklist that)) return false;
-        return id != null && Objects.equals(id, that.id);
-    }
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (org.hibernate.Hibernate.getClass(this) != org.hibernate.Hibernate.getClass(o)) {
+                return false;
+            }
+            RefreshTokenBlacklist that = (RefreshTokenBlacklist) o;
+            if (getId() == null || that.getId() == null) {
+                return false;
+            }
+            return Objects.equals(getId(), that.getId());
+        }
 
-    @Override
-    public int hashCode() {
-        return RefreshTokenBlacklist.class.hashCode();
-    }
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(getId());
+        }
 }

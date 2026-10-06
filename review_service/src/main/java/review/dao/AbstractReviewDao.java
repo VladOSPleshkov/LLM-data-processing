@@ -11,10 +11,6 @@ public abstract class AbstractReviewDao<T, ID extends Serializable> extends Abst
         super(entityClass);
     }
 
-    /**
-     * Переопределяем внедрение EntityManager с указанием reviewUnit.
-     * Spring применит эту аннотацию ко всем DAO, наследующим AbstractReviewDao.
-     */
     @Override
     @PersistenceContext(unitName = "reviewUnit")
     public void setEntityManager(EntityManager entityManager) {

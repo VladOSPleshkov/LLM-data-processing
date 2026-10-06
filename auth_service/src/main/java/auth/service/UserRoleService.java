@@ -4,6 +4,9 @@ import auth.dao.RolesDao;
 import auth.dao.UserDao;
 import auth.dao.UserRolesDao;
 import auth.entity.*;
+import auth.exception.RoleNotFoundException;
+import auth.exception.UserNotFoundException;
+import auth.exception.UserRolesNotFoundException;
 import com.shared.exception.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,10 +34,10 @@ public class UserRoleService {
 
         if (userRolesDao.findById(compositeKey).isPresent()) { return; }
         if (userDao.findById(userId).isEmpty()) {
-            throw new EntityNotFoundException("Пользователь не найден: " + userId);
+            throw new UserNotFoundException(userId);
         }
         if (rolesDao.findById(roleId).isEmpty()) {
-            throw new EntityNotFoundException("Роль не найдена: " + roleId);
+            throw new RoleNotFoundException(roleId);
         }
 
         User userRef = userRolesDao.getEntityManager().getReference(User.class, userId);
@@ -53,12 +56,8 @@ public class UserRoleService {
 
     @Transactional
     public void unlink(UUID userId, UUID roleId) {
-        UserRoleId compositeKey = new UserRoleId(userId, roleId);
-
-        UserRoles userRole = userRolesDao.findById(compositeKey)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Связь пользователя " + userId + " и роли " + roleId + " не найдена"
-                ));
+        UserRoles userRole = userRolesDao.findByCompositeKey(userId, roleId)
+                .orElseThrow(() -> new UserRolesNotFoundException(userId, roleId));
 
         userRolesDao.delete(userRole);
     }

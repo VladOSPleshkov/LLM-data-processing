@@ -118,11 +118,11 @@ public class Reviews {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Reviews that)) return false;
-        return id != null && Objects.equals(id, that.id);
+        return getId() != null && Objects.equals(getId(), that.getId());
     }
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return Objects.hash(id);
     }
 }

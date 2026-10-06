@@ -26,6 +26,7 @@ import review.entity.Brands;
 import review.entity.Categories;
 import review.entity.Reviews;
 import review.entity.VectorStore;
+import review.exception.ReviewNotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -34,15 +35,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * получение полной информации об отзыве (бренд + категории + вектор) выполняется ОДНИМ JPQL-запросом
- * через ReviewsDao#findByIdWithDetails / #findAllWithDetails, что устраняет
- * N+1, присутствовавший в исходной реализации (там категории и вектор
- * дотягивались отдельными DAO-вызовами в цикле для каждого отзыва).
- *
+ * получение полной информации об отзыве (бренд + категории + вектор) выполняется JPQL-запросом
+ * через ReviewsDao#findByIdWithDetails / #findAllWithDetails,
  * Управление ManyToMany выполняется через модификацию коллекции
  * Reviews.categories — JPA-провайдер сам синхронизирует join-таблицу
- * review_categories при флаше транзакции, отдельный ReviewCategoryDao
- * (как в legacy) больше не требуется.
+ * review_categories при флаше транзакции
  */
 @Component("reviewService")
 public class ReviewService implements IReviewService {
@@ -64,7 +61,7 @@ public class ReviewService implements IReviewService {
     @Transactional("reviewTransactionManager")
     public ReviewFullResponse createReview(CreateReviewRequest request) {
         Brands brand = brandsDao.findById(request.brandId())
-                .orElseThrow(() -> new EntityNotFoundException("Бренд с ID " + request.brandId() + " не найден"));
+                .orElseThrow(() -> new ReviewNotFoundException(request.brandId()));
 
         Reviews entity = Reviews.builder()
                 .brand(brand)
@@ -97,15 +94,15 @@ public class ReviewService implements IReviewService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(value = "reviewTransactionManager", readOnly = true)
     public ReviewFullResponse getReviewById(UUID id) {
         Reviews review = reviewsDao.findByIdWithDetails(id)
-                .orElseThrow(() -> new EntityNotFoundException("Отзыв с ID " + id + " не найден"));
+                .orElseThrow(() -> new ReviewNotFoundException(id));
         return mapToFullResponse(review);
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(value = "reviewTransactionManager", readOnly = true)
     public List<ReviewFullResponse> getAllReviews() {
         List<ReviewFullResponse> responses = new ArrayList<>();
         for (Reviews review : reviewsDao.findAllWithDetails()) {
@@ -118,7 +115,7 @@ public class ReviewService implements IReviewService {
     @Transactional("reviewTransactionManager")
     public ReviewFullResponse updateReview(UUID id, UpdateReviewRequest request) {
         Reviews existing = reviewsDao.findByIdWithDetails(id)
-                .orElseThrow(() -> new EntityNotFoundException("Отзыв с ID " + id + " не найден"));
+                .orElseThrow(() -> new ReviewNotFoundException(id));
 
         if (request.content() != null) {
             existing.setContent(request.content());
@@ -135,8 +132,6 @@ public class ReviewService implements IReviewService {
                 existing.addCategory(category);
             }
         }
-
-        // existing управляема текущей транзакцией — merge не требуется (dirty checking).
         return mapToFullResponse(existing);
     }
 
@@ -145,8 +140,6 @@ public class ReviewService implements IReviewService {
     public boolean deleteReview(UUID id) {
         return reviewsDao.findById(id)
                 .map(review -> {
-                    // vectorStore удалится каскадно (orphanRemoval=true на Reviews.vectorStore),
-                    // join-строки review_categories удалит JPA-провайдер автоматически.
                     reviewsDao.delete(review);
                     return true;
                 })
@@ -157,9 +150,9 @@ public class ReviewService implements IReviewService {
     @Transactional("reviewTransactionManager")
     public ReviewFullResponse addCategory(AddCategoryToReviewRequest request) {
         Reviews review = reviewsDao.findByIdWithDetails(request.reviewId())
-                .orElseThrow(() -> new EntityNotFoundException("Отзыв с ID " + request.reviewId() + " не найден"));
+                .orElseThrow(() -> new ReviewNotFoundException(request.reviewId()));
         Categories category = categoriesDao.findById(request.categoryId())
-                .orElseThrow(() -> new EntityNotFoundException("Категория с ID " + request.categoryId() + " не найдена"));
+                .orElseThrow(() -> new ReviewNotFoundException(request.categoryId()));
 
         review.addCategory(category);
         return mapToFullResponse(review);
@@ -169,9 +162,9 @@ public class ReviewService implements IReviewService {
     @Transactional("reviewTransactionManager")
     public ReviewFullResponse removeCategory(RemoveCategoryFromReviewRequest request) {
         Reviews review = reviewsDao.findByIdWithDetails(request.reviewId())
-                .orElseThrow(() -> new EntityNotFoundException("Отзыв с ID " + request.reviewId() + " не найден"));
+                .orElseThrow(() -> new ReviewNotFoundException(request.reviewId()));
         Categories category = categoriesDao.findById(request.categoryId())
-                .orElseThrow(() -> new EntityNotFoundException("Категория с ID " + request.categoryId() + " не найдена"));
+                .orElseThrow(() -> new ReviewNotFoundException(review.getId()));
 
         review.removeCategory(category);
         return mapToFullResponse(review);
@@ -187,11 +180,6 @@ public class ReviewService implements IReviewService {
                 ));
     }
 
-    /**
-     * Маппинг в DTO без единого дополнительного SQL-запроса:
-     * review.getBrand() / getCategories() / getVectorStore() уже загружены
-     * JOIN FETCH-запросом в ReviewsDao и находятся в persistence context.
-     */
     private ReviewFullResponse mapToFullResponse(Reviews entity) {
         List<String> categoryNames = entity.getCategories().stream()
                 .map(Categories::getName)

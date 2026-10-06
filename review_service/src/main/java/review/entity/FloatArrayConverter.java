@@ -14,12 +14,14 @@ public class FloatArrayConverter implements AttributeConverter<float[], String> 
             return null;
         }
         StringBuilder sb = new StringBuilder(attribute.length * 8);
+        sb.append("[");
         for (int i = 0; i < attribute.length; i++) {
             if (i > 0) {
                 sb.append(DELIMITER);
             }
             sb.append(attribute[i]);
         }
+        sb.append("]");
         return sb.toString();
     }
 
@@ -28,7 +30,11 @@ public class FloatArrayConverter implements AttributeConverter<float[], String> 
         if (dbData == null || dbData.isBlank()) {
             return null;
         }
-        String[] parts = dbData.split(DELIMITER);
+        String clean = dbData.replace("[", "").replace("]", "").trim();
+        if (clean.isEmpty()) {
+            return new float[0];
+        }
+        String[] parts = clean.split(DELIMITER);
         float[] result = new float[parts.length];
         for (int i = 0; i < parts.length; i++) {
             result[i] = Float.parseFloat(parts[i].trim());

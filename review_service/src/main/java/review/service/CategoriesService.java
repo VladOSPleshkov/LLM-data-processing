@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import review.dao.CategoriesDao;
 import review.entity.Categories;
+import review.exception.CategoryNotFound;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -48,15 +49,15 @@ public class CategoriesService implements ICategoriesService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(value = "reviewTransactionManager", readOnly = true)
     public CategoryDto getCategoryById(UUID id) {
         Categories category = categoriesDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Категория с ID " + id + " не найдена"));
+                .orElseThrow(() -> new CategoryNotFound(id));
         return mapToDto(category);
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(value = "reviewTransactionManager", readOnly = true)
     public List<CategoryDto> getAllCategories() {
         List<CategoryDto> result = new ArrayList<>();
         for (Categories category : categoriesDao.findAll()) {
@@ -69,7 +70,7 @@ public class CategoriesService implements ICategoriesService {
     @Transactional("reviewTransactionManager")
     public CategoryDto updateCategory(UUID id, UpdateCategoryRequest request) {
         Categories existing = categoriesDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Категория с ID " + id + " не найдена"));
+                .orElseThrow(() -> new CategoryNotFound(id));
 
         if (request.name() != null) {
             existing.setName(request.name());
@@ -83,8 +84,6 @@ public class CategoriesService implements ICategoriesService {
         if (!categoriesDao.findById(id).isPresent()) {
             return false;
         }
-        // Удаление Categories автоматически убирает связанные строки review_categories
-        // (join-таблица управляется JPA-провайдером в рамках маппинга ManyToMany).
         categoriesDao.deleteById(id);
         return true;
     }

@@ -5,7 +5,7 @@ import java.util.List;
 
 public record AuthRequest(
         @JsonProperty("username") String username,
-        @JsonProperty("password_hash") String passwordHash,
+        @JsonProperty("password") String password,
         @JsonProperty("email") String email,
         @JsonProperty("roles") List<String> roles
 ) {}

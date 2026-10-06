@@ -24,7 +24,6 @@ public class TasksDao extends AbstractDao<Tasks, UUID> {
         super(Tasks.class);
     }
 
-    // Загрузка задачи вместе со связанными TokenUsage в один запрос через JPQL
     public Optional<Tasks> findByIdWithTokenUsages(UUID id) {
         String jpql = "SELECT DISTINCT t FROM Tasks t LEFT JOIN FETCH t.tokenUsages WHERE t.id = :id";
         return entityManager.createQuery(jpql, Tasks.class)

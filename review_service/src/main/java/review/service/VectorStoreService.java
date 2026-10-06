@@ -11,9 +11,8 @@ import review.dao.ReviewsDao;
 import review.dao.VectorStoreDao;
 import review.entity.Reviews;
 import review.entity.VectorStore;
+import review.exception.VectorStoreNotFoundException;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Component("vectorStoreService")
@@ -43,22 +42,20 @@ public class VectorStoreService implements IVectorStoreService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(value = "reviewTransactionManager", readOnly = true)
     public VectorStoreDto getVectorById(UUID id) {
         return mapToDto(vectorStoreDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Вектор с ID " + id + " не найден")));
+                .orElseThrow(() -> new VectorStoreNotFoundException(id)));
     }
+
 
     @Override
-    @Transactional(readOnly = true)
-    public List<VectorStoreDto> getAllVectors() {
-        List<VectorStoreDto> result = new ArrayList<>();
-        for (VectorStore v : vectorStoreDao.findAll()) {
-            result.add(mapToDto(v));
-        }
-        return result;
+    @Transactional(value = "reviewTransactionManager", readOnly = true)
+    public VectorStoreDto getByReviewId(UUID reviewId) {
+        return vectorStoreDao.findByReviewId(reviewId)
+                .map(this::mapToDto)
+                .orElseThrow(() -> VectorStoreNotFoundException.byReviewId(reviewId));
     }
-
     @Override
     @Transactional("reviewTransactionManager")
     public VectorStoreDto updateVector(UUID id, UpdateVectorRequest request) {
@@ -77,7 +74,7 @@ public class VectorStoreService implements IVectorStoreService {
     @Override
     @Transactional("reviewTransactionManager")
     public boolean deleteVector(UUID id) {
-        if (!vectorStoreDao.findById(id).isPresent()) {
+        if (vectorStoreDao.findById(id).isEmpty()) {
             return false;
         }
         vectorStoreDao.deleteById(id);
