@@ -1,7 +1,6 @@
 package review.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.shared.CrudController;
 import com.shared.dto.review.*;
 import com.shared.service.IReviewService;
 import org.springframework.beans.factory.annotation.Value;

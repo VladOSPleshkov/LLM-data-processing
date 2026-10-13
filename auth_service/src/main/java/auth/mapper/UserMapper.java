@@ -29,11 +29,15 @@ public interface UserMapper {
     UserRoleInfoDto toRoleInfoDto(UserRoles userRoles);
 
     default AuthResponse toAuthResponse(User user) {
+        if (user == null) {
+            return null;
+        }
+
         List<String> roleNames = user.getUserRoles() == null
                 ? List.of()
                 : user.getUserRoles().stream()
                 .map(ur -> ur.getRole().getName())
-                .collect(Collectors.toList());
+                .toList();
         return new AuthResponse(user.getId(), user.getUsername(), roleNames);
     }
 }

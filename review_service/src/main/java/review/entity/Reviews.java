@@ -41,7 +41,6 @@ import java.util.UUID;
         attributeNodes = {
                 @NamedAttributeNode("brand"),
                 @NamedAttributeNode("categories"),
-                @NamedAttributeNode("vectorStore")
         }
 )
 public class Reviews {
@@ -81,22 +80,6 @@ public class Reviews {
     )
     private Set<Categories> categories = new HashSet<>();
 
-    /** OneToOne, inverse-сторона (владеет VectorStore через FK review_id). */
-    @Setter(AccessLevel.NONE)
-    @OneToOne(mappedBy = "review", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private VectorStore vectorStore;
-
-    public void assignVectorStore(VectorStore vectorStore) {
-        if (vectorStore == null) {
-            if (this.vectorStore != null) {
-                this.vectorStore.setReview(null);
-            }
-            this.vectorStore = null;
-            return;
-        }
-        vectorStore.setReview(this);
-        this.vectorStore = vectorStore;
-    }
 
     public void addCategory(Categories category) {
         this.categories.add(category);

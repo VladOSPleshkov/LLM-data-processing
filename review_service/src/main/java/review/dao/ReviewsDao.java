@@ -26,7 +26,6 @@ public class ReviewsDao extends AbstractReviewDao<Reviews, UUID> {
                 FROM Reviews r
                 LEFT JOIN FETCH r.brand
                 LEFT JOIN FETCH r.categories
-                LEFT JOIN FETCH r.vectorStore
                 WHERE r.id = :id
                 """;
         TypedQuery<Reviews> query = entityManager.createQuery(jpql, Reviews.class);
@@ -40,7 +39,6 @@ public class ReviewsDao extends AbstractReviewDao<Reviews, UUID> {
                 FROM Reviews r
                 LEFT JOIN FETCH r.brand
                 LEFT JOIN FETCH r.categories
-                LEFT JOIN FETCH r.vectorStore
                 """;
         return entityManager.createQuery(jpql, Reviews.class).getResultList();
     }

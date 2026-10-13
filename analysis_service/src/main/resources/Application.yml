@@ -1,0 +1,65 @@
+server:
+  port: 8083
+  spring:
+    liquibase:
+    enabled:
+    true change-log: classpath:db/changelog/changelog-analysis.xml
+  threads:
+  virtual:
+  enabled: true
+
+  application:
+    name: analysis-service
+
+    datasource:
+      url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:analysis_db}
+      username: ${DB_USER:analysis_user}
+      password: ${DB_PASSWORD:analysis_pass}
+      driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: analysis-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.shared.dto.*"
+        spring.json.value.default.type: com.shared.dto.analysis.ReviewAnalysisEvent
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+  ai:
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 1536 # Под модель text-embedding-3-small или аналог
+    openai:
+#    api-key: ${LLM_API_KEY:gsk_your_groq_key_or_openrouter}
+#    base-url: ${LLM_BASE_URL:https://api.groq.com/openai/v1}
+#    chat:
+#      options:
+#        model: llama-3.3-70b-versatile
+#        temperature: 0.2
+      api-key: lm-studio-dummy-key
+      base-url: ${LLM_BASE_URL:http://localhost:1234/v1}
+
+    chat:
+      options:
+        # или оставить пустым/любым, так как локальный сервер автоматически вызовет ТУ модель, которая сейчас ЗАГРУЖЕНА в интерфейсе LM Studio.
+        model: ${LLM_MODEL:loaded-model}
+        temperature: 0.3
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: 3600000
+

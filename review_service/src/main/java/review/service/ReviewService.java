@@ -1,64 +1,38 @@
 package review.service;
-
+import com.shared.dto.analysis.ReviewAnalysisEvent;
 import com.shared.dto.review.*;
-import com.shared.exception.EntityNotFoundException;
 import com.shared.service.IReviewService;
-import org.springframework.stereotype.Component;
-import review.dao.*;
-import review.entity.Categories;
-import review.entity.Reviews;
-import review.entity.VectorStore;
-
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import com.shared.dto.review.*;
-import com.shared.exception.EntityNotFoundException;
-import com.shared.service.IReviewService;
-import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionalEventListener;
 import review.dao.BrandsDao;
 import review.dao.CategoriesDao;
 import review.dao.ReviewsDao;
-import review.dao.VectorStoreDao;
 import review.entity.Brands;
 import review.entity.Categories;
 import review.entity.Reviews;
-import review.entity.VectorStore;
 import review.exception.ReviewNotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-/**
- * получение полной информации об отзыве (бренд + категории + вектор) выполняется JPQL-запросом
- * через ReviewsDao#findByIdWithDetails / #findAllWithDetails,
- * Управление ManyToMany выполняется через модификацию коллекции
- * Reviews.categories — JPA-провайдер сам синхронизирует join-таблицу
- * review_categories при флаше транзакции
- */
-@Component("reviewService")
+@Slf4j
+@Service("reviewService")
+@RequiredArgsConstructor
 public class ReviewService implements IReviewService {
 
     private final ReviewsDao reviewsDao;
     private final BrandsDao brandsDao;
     private final CategoriesDao categoriesDao;
-    private final VectorStoreDao vectorStoreDao;
-
-    public ReviewService(ReviewsDao reviewsDao, BrandsDao brandsDao,
-                         CategoriesDao categoriesDao, VectorStoreDao vectorStoreDao) {
-        this.reviewsDao = reviewsDao;
-        this.brandsDao = brandsDao;
-        this.categoriesDao = categoriesDao;
-        this.vectorStoreDao = vectorStoreDao;
-    }
+    private final KafkaTemplate<String, Object> kafkaTemplate; // Оставляем шаблон Kafka
 
     @Override
-    @Transactional("reviewTransactionManager")
+    @TransactionalEventListener
     public ReviewFullResponse createReview(CreateReviewRequest request) {
         Brands brand = brandsDao.findById(request.brandId())
                 .orElseThrow(() -> new ReviewNotFoundException(request.brandId()));
@@ -80,17 +54,26 @@ public class ReviewService implements IReviewService {
         }
 
         Reviews savedReview = reviewsDao.save(entity);
+        ReviewFullResponse response = mapToFullResponse(savedReview);
 
-        if (request.embedding() != null) {
-            VectorStore vectorStore = VectorStore.builder()
-                    .embedding(request.embedding())
-                    .metadata(request.metadata())
-                    .build();
-            savedReview.assignVectorStore(vectorStore);
-            vectorStoreDao.save(vectorStore);
-        }
+        ReviewAnalysisEvent analysisEvent = new ReviewAnalysisEvent(
+                response.id(),
+                response.content(),
+                String.join(", ", response.categoryNames()),
+                response.brandName()
+        );
 
-        return mapToFullResponse(savedReview);
+        // Ключом сообщения ставим бренд для сохранения строгого порядка внутри партиции Kafka
+        kafkaTemplate.send("review-processing-topic", response.brandName(), analysisEvent)
+                .whenComplete((result, ex) -> {
+                    if (ex == null) {
+                        log.info("Событие отзыва {} успешно отправлено в Kafka для ИИ-обработки", response.id());
+                    } else {
+                        log.error("Критическая ошибка отправки отзыва {} в Kafka: {}", response.id(), ex.getMessage());
+                    }
+                });
+
+        return response;
     }
 
     @Override
@@ -141,6 +124,7 @@ public class ReviewService implements IReviewService {
         return reviewsDao.findById(id)
                 .map(review -> {
                     reviewsDao.delete(review);
+                    log.info("Отзыв {} удален из реляционной базы данных review_db", id);
                     return true;
                 })
                 .orElse(false);
@@ -173,22 +157,13 @@ public class ReviewService implements IReviewService {
     private Categories findOrCreateCategory(String name) {
         return categoriesDao.findByName(name)
                 .orElseGet(() -> categoriesDao.save(
-                        Categories.builder()
-                                .name(name)
-                                .createdAt(LocalDateTime.now())
-                                .build()
-                ));
+                        Categories.builder().name(name).createdAt(LocalDateTime.now()).build()));
     }
 
     private ReviewFullResponse mapToFullResponse(Reviews entity) {
         List<String> categoryNames = entity.getCategories().stream()
                 .map(Categories::getName)
-                .collect(Collectors.toList());
-
-        float[] embedding = entity.getVectorStore() != null
-                ? entity.getVectorStore().getEmbedding()
-                : null;
-
+                .toList();
         return new ReviewFullResponse(
                 entity.getId(),
                 entity.getBrand().getId(),
@@ -199,8 +174,7 @@ public class ReviewService implements IReviewService {
                 entity.getIndexedAt(),
                 entity.getAuthorName(),
                 entity.getSource(),
-                categoryNames,
-                embedding
+                categoryNames
         );
     }
 }

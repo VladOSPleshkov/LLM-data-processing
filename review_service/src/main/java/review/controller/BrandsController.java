@@ -2,7 +2,6 @@ package review.controller;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.shared.CrudController;
 import com.shared.dto.review.BrandDto;
 import com.shared.dto.review.CreateBrandRequest;
 import com.shared.dto.review.UpdateBrandRequest;

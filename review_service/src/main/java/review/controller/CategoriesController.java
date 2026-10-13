@@ -1,7 +1,6 @@
 package review.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.shared.CrudController;
 import com.shared.dto.review.CategoryDto;
 import com.shared.dto.review.CreateCategoryRequest;
 import com.shared.dto.review.UpdateCategoryRequest;

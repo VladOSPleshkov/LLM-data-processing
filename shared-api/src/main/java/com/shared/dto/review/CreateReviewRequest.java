@@ -9,7 +9,5 @@ public record CreateReviewRequest(
         @JsonProperty("rating") Integer rating,
         @JsonProperty("author_name") String authorName,
         @JsonProperty("source") String source,
-        @JsonProperty("category_names") List<String> categoryNames,
-        @JsonProperty("embedding") float[] embedding,
-        @JsonProperty("metadata") String metadata
+        @JsonProperty("category_names") List<String> categoryNames
 ) {}

@@ -7,6 +7,16 @@ import analysis.entity.TokenUsage;
 import com.shared.dto.analysis.*;
 import com.shared.exception.EntityNotFoundException;
 import com.shared.service.ITasksService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.metadata.Usage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,14 +25,15 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
+@RequiredArgsConstructor
 @Service("tasksService")
 public class TasksService implements ITasksService {
 
     private final TasksDao tasksDao;
-
-    public TasksService(TasksDao tasksDao) {
-        this.tasksDao = tasksDao;
-    }
+    private final ChatClient.Builder chatClientBuilder;
+    private final VectorStore vectorStore;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Override
     @Transactional
@@ -43,10 +54,87 @@ public class TasksService implements ITasksService {
                 .topK(request.topK() > 0 ? request.topK() : 10)
                 .tokenUsed(0)
                 .build();
+        tasksDao.save(task);
 
-        Tasks savedTask = tasksDao.save(task);
-        processTaskMock(savedTask); // Имитация обработки
-        return toDto(savedTask);
+        try {
+            FilterExpressionBuilder fb = new FilterExpressionBuilder();
+            var filterExpression = fb.eq("brandName", task.getBrandName()).build();
+
+            SearchRequest searchRequest = SearchRequest.query(task.getQuery())
+                    .withTopK(task.getTopK())
+                    .withFilterExpression(filterExpression);
+
+            List<Document> relevantDocs = vectorStore.similaritySearch(
+                    SearchRequest.builder()
+                            .query(task.getQuery())
+                            .topK(task.getTopK())
+                            .similarityThreshold(0.6)
+                            .filterExpression("brandId == '" + task.getBrandId() + "'")
+                            .build()
+            );
+
+            // 2. Формирование реального contextReviews
+            String contextReviews = relevantDocs.stream()
+                    .map(Document::getText)
+                    .collect(Collectors.joining("\n---\n"));
+
+            if (contextReviews.isBlank()) {
+                contextReviews = "Отзывы по данному бренду в базе не найдены.";
+            }
+
+            // 3. Вызов LLM через ChatClient
+            ChatClient chatClient = chatClientBuilder.build();
+            String promptText = String.format(
+                    """
+                    Инструкция: Проанализируй следующие отзывы для бренда %s.
+                    Запрос пользователя: %s
+    
+                    Контекст (найденные отзывы):
+                    %s
+                    """,
+                    task.getBrandName(), task.getQuery(), contextReviews
+            );
+
+            ChatResponse response = chatClient.prompt()
+                    .user(promptText)
+                    .call()
+                    .chatResponse();
+
+            String llmResult = response.getResult().getOutput().getText();
+            Usage usage = response.getMetadata().getUsage();
+
+            long promptTokens = usage != null ? usage.getPromptTokens() : 0;
+            long generationTokens = usage != null ? usage.getCompletionTokens() : 0;
+            String modelName = response.getMetadata().getModel() != null
+                    ? response.getMetadata().getModel() : "llama-3.3-70b";
+
+            TokenUsage tokenUsage = TokenUsage.builder()
+                    .task(task)
+                    .modelName(modelName)
+                    .promptTokens(promptTokens)
+                    .responseTokens(generationTokens)
+                    .recordedAt(LocalDateTime.now())
+                    .build();
+
+            task.getTokenUsages().add(tokenUsage);
+            task.setResult(llmResult);
+            task.setStatus(Status.COMPLETED);
+            task.setTokenUsed((int) (promptTokens + generationTokens));
+            task.setCompletedAt(LocalDateTime.now());
+
+
+        } catch (Exception ex) {
+            log.error("Ошибка при работе с LLM для задачи {}", task.getId(), ex);
+            task.setStatus(Status.FAILED);
+            task.setErrorMessage(ex.getMessage());
+        } finally {
+            task.setUpdatedAt(LocalDateTime.now());
+            tasksDao.save(task);
+
+            // 5. Отправляем событие о завершении анализа в Kafka для других микросервисов
+            kafkaTemplate.send("analysis-results", task.getId().toString(), task.getResult());
+        }
+        return toDto(task);
     }
 
     @Override
@@ -95,7 +183,6 @@ public class TasksService implements ITasksService {
 
         task.setUpdatedAt(LocalDateTime.now());
 
-        // Dirty Checking Hibernate автоматически выполнит UPDATE при коммите транзакции
         return toDto(task);
     }
 
@@ -106,27 +193,6 @@ public class TasksService implements ITasksService {
         } else {
             return tasksDao.deleteById(id);
         }
-    }
-
-    private void processTaskMock(Tasks task) {
-        String mockResult = "Аналитический отчет по запросу '" + task.getQuery() + "'.";
-        long mockPrompt = 150L;
-        long mockResponse = 250L;
-
-        TokenUsage usage = TokenUsage.builder()
-                .task(task)
-                .modelName("mock-llm-v1")
-                .promptTokens(mockPrompt)
-                .responseTokens(mockResponse)
-                .recordedAt(LocalDateTime.now())
-                .build();
-
-        task.getTokenUsages().add(usage);
-        task.setStatus(Status.COMPLETED);
-        task.setResult(mockResult);
-        task.setTokenUsed((int) (mockPrompt + mockResponse));
-        task.setCompletedAt(LocalDateTime.now());
-        task.setUpdatedAt(LocalDateTime.now());
     }
 
     private TokenUsageDto toTokenUsageDto(TokenUsage tu) {

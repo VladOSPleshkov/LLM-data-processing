@@ -1,7 +1,7 @@
 package auth.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.shared.CrudController;
+//import com.shared.CrudController;
 import com.shared.dto.auth.CreateBlacklistTokenRequest;
 import com.shared.dto.auth.RefreshTokenBlacklistDto;
 import com.shared.dto.auth.UpdateBlacklistTokenRequest;
