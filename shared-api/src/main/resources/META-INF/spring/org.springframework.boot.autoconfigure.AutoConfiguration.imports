@@ -1,2 +1,2 @@
 com.shared.security.config.SharedSecurityAutoConfiguration
-com.shared.exception.GlobalExceptionHandler
+com.shared.exception.config.SharedExceptionAutoConfiguration

@@ -5,14 +5,18 @@ spring:
   name: auth-service
 
   datasource:
-  url: ${AUTH_DB_URL:jdbc:postgresql://localhost:5431/auth_db}
-  username: ${DB_USER:postgres}
-  password: ${DB_PASSWORD:postgres}
-  driver-class-name: org.postgresql.Driver
+    url: ${AUTH_DB_URL:jdbc:postgresql://localhost:5433/auth_db}
+    username: ${AUTH_DB_USER:auth_user}
+    password: ${AUTH_DB_PASS:passw}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: AuthHikariPool
+      maximum-pool-size: 10
   hikari:
   pool-name: AuthHikariPool
   maximum-pool-size: 10
   jpa:
+    open-in-view: false
     database-platform:
     org.hibernate.dialect.PostgreSQLDialect hibernate:
     ddl-auto: validate # Схема полностью контролируется Liquibase open-in-view: false

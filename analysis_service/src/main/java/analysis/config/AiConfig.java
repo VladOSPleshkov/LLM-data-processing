@@ -15,17 +15,7 @@ public class AiConfig {
     public EmbeddingModel embeddingModel(
             @Value("${spring.ai.openai.api-key}") String apiKey,
             @Value("${spring.ai.openai.base-url}") String baseUrl) {
-        // Используем тот же эндпоинт для генерации векторов (например, через OpenRouter/Groq)
         var openAiApi = new OpenAiApi(baseUrl, apiKey);
         return new OpenAiEmbeddingModel(openAiApi);
-    }
-    @Bean
-    public VectorStore vectorStore(JdbcTemplate jdbcTemplate, EmbeddingModel embeddingModel) {
-        return PgVectorStore.builder(jdbcTemplate, embeddingModel)
-                .dimensions(1536)
-                .distanceType(PgVectorStore.PgDistanceType.COSINE_DISTANCE)
-                .indexType(PgVectorStore.PgIndexType.HNSW)
-                .initializeSchema(true)
-                .build();
     }
 }

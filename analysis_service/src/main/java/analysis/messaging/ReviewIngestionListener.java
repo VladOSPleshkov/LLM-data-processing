@@ -31,12 +31,9 @@ public class ReviewIngestionListener {
                         "category", event.categoryName() != null ? event.categoryName() : ""
                 )
         );
-
-        // Чанкинг токенов
         TokenTextSplitter splitter = new TokenTextSplitter(800, 350, 5, 1000, true);
         List<Document> chunks = splitter.apply(List.of(rawDoc));
 
-        // Векторизация и сохранение в pgvector (analysis_db)
         vectorStore.add(chunks);
         log.info("Отзыв {} успешно сохранен в pgvector", event.reviewId());
     }

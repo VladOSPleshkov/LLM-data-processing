@@ -44,11 +44,13 @@ public class SharedSecurityAutoConfiguration {
         return new JwtTokenValidator(secret);
 
     }
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter(
+            JwtTokenValidator jwtTokenValidator,
+            HandlerExceptionResolver handlerExceptionResolver) {
+        return new JwtAuthenticationFilter(jwtTokenValidator, handlerExceptionResolver);
+    }
 
-//    @Bean
-//    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenValidator jwtTokenValidator, HandlerExceptionResolver handlerExceptionResolver) {
-//        return new JwtAuthenticationFilter(jwtTokenValidator, handlerExceptionResolver);
-//    }
     @Bean
     public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(JwtAuthenticationFilter filter) {
         FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
@@ -64,11 +66,5 @@ public class SharedSecurityAutoConfiguration {
     @Bean
     public CustomAccessDeniedHandler customAccessDeniedHandler(ObjectMapper objectMapper) {
         return new CustomAccessDeniedHandler(objectMapper);
-    }
-    @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(
-            JwtTokenValidator jwtTokenValidator,
-            HandlerExceptionResolver handlerExceptionResolver) { // Внедряем резолвер спринга
-        return new JwtAuthenticationFilter(jwtTokenValidator, handlerExceptionResolver);
     }
 }

@@ -51,14 +51,14 @@ public class TasksService implements ITasksService {
                 .status(Status.PROCESSING)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .topK(request.topK() > 0 ? request.topK() : 10)
+                .topK(request.topK() > 0 ? (short) request.topK() : 10)
                 .tokenUsed(0)
                 .build();
         tasksDao.save(task);
 
         try {
             FilterExpressionBuilder fb = new FilterExpressionBuilder();
-            var filterExpression = fb.eq("brandName", task.getBrandName()).build();
+            //var filterExpression = fb.eq("brandName", task.getBrandName()).build();
 
 //            SearchRequest searchRequest = SearchRequest.query(task.getQuery())
 //                    .withTopK(task.getTopK())
@@ -114,8 +114,8 @@ public class TasksService implements ITasksService {
             String llmResult = response.getResult().getOutput().getText();
             Usage usage = response.getMetadata().getUsage();
 
-            long promptTokens = usage != null ? usage.getPromptTokens() : 0;
-            long generationTokens = usage != null ? usage.getCompletionTokens() : 0;
+            Integer promptTokens = usage != null ? usage.getPromptTokens() : 0;
+            Integer generationTokens = usage != null ? usage.getCompletionTokens() : 0;
             String modelName = response.getMetadata().getModel() != null
                     ? response.getMetadata().getModel() : "llama-3.3-70b";
 

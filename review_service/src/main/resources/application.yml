@@ -20,13 +20,13 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 app:
   datasource:
-    url: jdbc:postgresql://localhost:5432/review_db
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: ${REVIEW_DB_URL:jdbc:postgresql://localhost:5435/review_db}
+    username: ${REVIEW_DB_USER:review_user}
+    password: ${REVIEW_DB_PASS:passw}
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: ReviewHikariPool
-      maximum-pool-size: 20
+      maximum-pool-size: 15
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect

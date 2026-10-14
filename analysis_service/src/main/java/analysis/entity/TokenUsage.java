@@ -28,10 +28,10 @@ public class TokenUsage {
     private String modelName;
 
     @Column(name = "prompt_tokens")
-    private Long promptTokens;
+    private Integer promptTokens;
 
     @Column(name = "response_tokens")
-    private Long responseTokens;
+    private Integer responseTokens;
 
     @Column(name = "recorded_at", nullable = false)
     private LocalDateTime recordedAt;

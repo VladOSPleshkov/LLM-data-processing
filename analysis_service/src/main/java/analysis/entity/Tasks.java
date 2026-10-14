@@ -2,6 +2,8 @@ package analysis.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -52,7 +54,7 @@ public class Tasks {
     private LocalDateTime updatedAt;
 
     @Column(name = "top_k")
-    private int topK;
+    private short topK;
 
     @Column(name = "token_used")
     private int tokenUsed;

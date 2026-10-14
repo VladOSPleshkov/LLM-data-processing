@@ -34,8 +34,6 @@ public class JwtTokenValidator {
     public Claims getClaims(String token) {
         return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
     }
-
-    //заменены на claims
     public String getUsername(String token) { return getClaims(token).getSubject(); }
 
     @SuppressWarnings("unchecked")
