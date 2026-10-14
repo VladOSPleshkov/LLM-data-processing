@@ -5,9 +5,9 @@ spring:
   name: auth-service
 
   datasource:
-  url: ${AUTH\_DB\_URL:jdbc:postgresql://localhost:5431/auth\_db}
-  username: ${DB\_USER:postgres}
-  password: ${DB\_PASSWORD:postgres}
+  url: ${AUTH_DB_URL:jdbc:postgresql://localhost:5431/auth_db}
+  username: ${DB_USER:postgres}
+  password: ${DB_PASSWORD:postgres}
   driver-class-name: org.postgresql.Driver
   hikari:
   pool-name: AuthHikariPool
@@ -17,8 +17,9 @@ spring:
     org.hibernate.dialect.PostgreSQLDialect hibernate:
     ddl-auto: validate # Схема полностью контролируется Liquibase open-in-view: false
   liquibase:
-  enabled:
-  true change-log: classpath:db/changelog/changelog-auth.xml
+  enabled: true
+  change-log: classpath:db/changelog/changelog-auth.xml
 jwt:
-  secret: ${JWT_SECRET:default-very-secure-secret-key-at-least-256-bits-long-32-bytes!}
+  secret: ${JWT_SECRET}
   expiration-ms: 3600000
+  refresh-expiration-ms: 604800000

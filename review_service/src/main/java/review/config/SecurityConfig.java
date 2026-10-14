@@ -37,6 +37,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
                         // Работа с отзывами, категориями и брендами доступна MANAGER и ADMIN
                         .requestMatchers("/api/v1/reviews/**", "/api/v1/categories/**", "/api/v1/brands/**").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers("/api/v1/reports/**").hasAnyRole("MANAGER", "ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

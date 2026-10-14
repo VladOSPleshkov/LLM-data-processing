@@ -3,55 +3,54 @@
     xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
-        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd"
-    logicalFilePath="homework-2-auth">
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
 
     <changeSet id="auth-service-01-create-users" author="Vlad Pleshkov">
         <sqlFile encoding="utf8"
                  relativeToChangelogFile="true"
-                 path="/sql/01.create-users-table.sql"/>
+                 path="sql/01.create-users-table.sql"/>
     </changeSet>
 
     <changeSet id="auth-service-02-add-users" author="Vlad Pleshkov">
         <sqlFile encoding="utf8"
                  relativeToChangelogFile="true"
-                 path="/sql/02.add-users.sql"/>
+                 path="sql/02.add-users.sql"/>
     </changeSet>
 
     <changeSet id="auth-service-03-create-roles" author="Vlad Pleshkov">
         <sqlFile encoding="utf8"
                  relativeToChangelogFile="true"
-                 path="/sql/03.create-roles-table.sql"/>
+                 path="sql/03.create-roles-table.sql"/>
     </changeSet>
 
     <changeSet id="auth-service-04-add-roles" author="Vlad Pleshkov">
         <sqlFile encoding="utf8"
                  relativeToChangelogFile="true"
-                 path="/sql/04.add-roles-column.sql"/>
+                 path="sql/04.add-roles-column.sql"/>
     </changeSet>
 
     <changeSet id="auth-service-05-create-user-roles" author="Vlad Pleshkov">
         <sqlFile encoding="utf8"
                  relativeToChangelogFile="true"
-                 path="/sql/05.create-user_roles-table.sql"/>
+                 path="sql/05.create-user_roles-table.sql"/>
     </changeSet>
 
     <changeSet id="auth-service-06-add-user-roles" author="Vlad Pleshkov">
         <sqlFile encoding="utf8"
                  relativeToChangelogFile="true"
-                 path="/sql/06.add_user_roles.sql"/>
+                 path="sql/06.add_user_roles.sql"/>
     </changeSet>
 
     <changeSet id="auth-service-07-refresh-token-blacklist" author="Vlad Pleshkov">
         <sqlFile encoding="utf8"
                  relativeToChangelogFile="true"
-                 path="/sql/07.refresh_token_blacklist.sql"/>
+                 path="sql/07.refresh_token_blacklist.sql"/>
     </changeSet>
 
     <changeSet id="auth-service-08-create-users-indexes" author="Vlad Pleshkov">
         <sqlFile encoding="utf8"
                  relativeToChangelogFile="true"
-                 path="/sql/08.create-users-indexes.sql"/>
+                 path="sql/08.create-users-indexes.sql"/>
     </changeSet>
 
 </databaseChangeLog>

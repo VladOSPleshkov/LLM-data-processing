@@ -11,7 +11,6 @@ public abstract class AbstractReviewDao<T, ID extends Serializable> extends Abst
         super(entityClass);
     }
 
-    @Override
     @PersistenceContext(unitName = "reviewUnit")
     public void setEntityManager(EntityManager entityManager) {
         super.setEntityManager(entityManager);

@@ -3,8 +3,7 @@
     xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
-        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd"
-    logicalFilePath="homework-2-analysis">
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
 
     <changeSet id="001-enable-pgvector" author="ai-core">
         <sql>CREATE EXTENSION IF NOT EXISTS vector;
@@ -15,37 +14,37 @@
     <changeSet id="analysis-service-01-create-tasks" author="Vlad Pleshkov">
         <sqlFile encoding="utf8"
                  relativeToChangelogFile="true"
-                 path="/sql/01.create-task-table.sql"/>
+                 path="sql/01.create-task-table.sql"/>
     </changeSet>
 
     <changeSet id="analysis-service-02-add-tasks" author="Vlad Pleshkov">
         <sqlFile encoding="utf8"
                  relativeToChangelogFile="true"
-                 path="/sql/02.add-tasks.sql"/>
+                 path="sql/02.add-tasks.sql"/>
     </changeSet>
 
     <changeSet id="analysis-service-03-create-token-usage" author="Vlad Pleshkov">
         <sqlFile encoding="utf8"
                  relativeToChangelogFile="true"
-                 path="/sql/03.create_token_usage-table.sql"/>
+                 path="sql/03.create_token_usage-table.sql"/>
     </changeSet>
 
     <changeSet id="analysis-service-04-add-token-usage" author="Vlad Pleshkov">
         <sqlFile encoding="utf8"
                  relativeToChangelogFile="true"
-                 path="/sql/04.add-token_usage.sql"/>
+                 path="sql/04.add-token_usage.sql"/>
     </changeSet>
 
     <changeSet id="analysis-service-05-create-tasks-indexes" author="Vlad Pleshkov">
         <sqlFile encoding="utf8"
                  relativeToChangelogFile="true"
-                 path="/sql/05.create-tasks-indexes.sql"/>
+                 path="sql/05.create-tasks-indexes.sql"/>
     </changeSet>
 
     <changeSet id="analysis-service-06-create-token-usage-indexes" author="Vlad Pleshkov">
         <sqlFile encoding="utf8"
                  relativeToChangelogFile="true"
-                 path="/sql/06.create_token_usage_indexes.sql"/>
+                 path="sql/06.create_token_usage_indexes.sql"/>
     </changeSet>
 
 </databaseChangeLog>

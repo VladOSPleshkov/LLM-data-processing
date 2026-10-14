@@ -88,12 +88,6 @@ class SecurityAndKafkaJsonIntegrationTest {
             testConsumer.close();
         }
     }
-
-    /**
-     * Сценарий 1: Проверка защиты эндпоинта.
-     * Запрос без JWT токена (или без авторизационных заголовков) должен гарантированно возвращать 401 Unauthorized
-     * через наш кастомный CustomAuthenticationEntryPoint.
-     */
     @Test
     void createReview_WhenUnauthenticated_ShouldReturn401() throws Exception {
         CreateReviewRequest request = new CreateReviewRequest(
@@ -115,9 +109,8 @@ class SecurityAndKafkaJsonIntegrationTest {
      *  3. Отправить сериализованный JSON-ивент ReviewAnalysisEvent в EmbeddedKafka.
      */
     @Test
-    @WithMockUser(username = "test_user", roles = {"MANAGER"}) // Накатывает валидный SecurityContext с ROLE_MANAGER
+    @WithMockUser(username = "test_user", roles = {"MANAGER"})
     void createReview_WithValidToken_ShouldSaveAndPublishToKafka() throws Exception {
-        // Подготовка данных
         UUID brandId = UUID.randomUUID();
         String brandName = "TestBrand";
 
@@ -151,10 +144,8 @@ class SecurityAndKafkaJsonIntegrationTest {
                 java.time.Duration.ofMillis(5000) // Передаем явный Duration вместо примитива
         );
         assertThat(singleRecord).isNotNull();
-        // Ключом сообщения должен быть бренд (для партиционирования)
         assertThat(singleRecord.key()).isEqualTo(brandName);
 
-        // Десериализуем отправленный JSON и проверяем бизнес-поля
         ReviewAnalysisEvent sentEvent = objectMapper.readValue(singleRecord.value(), ReviewAnalysisEvent.class);
 
         assertThat(sentEvent.text()).contains("Отличный девайс");

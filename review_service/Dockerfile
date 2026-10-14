@@ -14,7 +14,7 @@ COPY auth_service/pom.xml ./auth_service/
 COPY review_service/pom.xml ./review_service/
 COPY analysis_service/pom.xml ./analysis_service/
 # 3. Скачиваем все зависимости для сборки (этот слой закэшируется, если pom-файлы не менялись)
-RUN mvn dependency:go-offline -B
+RUN mvn dependency:resolve-plugins -B
 
 # 4. Копируем реальный исходный код общих библиотек и текущего компилируемого сервиса
 COPY shared-api/ ./shared-api/
@@ -22,7 +22,7 @@ ARG MODULE_NAME
 COPY ${MODULE_NAME}/ ./${MODULE_NAME}/
 
 # 5. Собираем исполняемый Fat-JAR файл конкретного микросервиса
-RUN mvn -pl ${MODULE_NAME} clean package -DskipTests -B
+RUN mvn -pl ${MODULE_NAME} -am clean package -DskipTests -B
 
 # ==================== Шаг 2: Легковесный рантайм-образ ====================
 FROM eclipse-temurin:21-jre-alpine

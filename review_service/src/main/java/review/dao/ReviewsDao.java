@@ -1,6 +1,5 @@
 package review.dao;
 
-import com.shared.dao.AbstractDao;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;

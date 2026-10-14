@@ -12,12 +12,6 @@ import org.mapstruct.Mapping;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Вызывается ИСКЛЮЧИТЕЛЬНО внутри @Transactional-методов сервиса,
- * пока EntityManager/persistence context ещё открыт — иначе обращение
- * к ленивой ассоциации UserRoles.role внутри toRoleInfoDto()
- * выбросит LazyInitializationException.
- */
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 

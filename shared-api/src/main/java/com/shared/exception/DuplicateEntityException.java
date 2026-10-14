@@ -1,6 +1,9 @@
 package com.shared.exception;
-public class DuplicateEntityException extends RuntimeException {
+
+import org.springframework.http.HttpStatus;
+
+public class DuplicateEntityException extends BaseApplicationException {
     public DuplicateEntityException(String message) {
-        super(message);
+        super(message, HttpStatus.CONFLICT);
     }
 }

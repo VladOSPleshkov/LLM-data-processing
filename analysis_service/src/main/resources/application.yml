@@ -1,29 +1,29 @@
 server:
-  port: 8083
-  spring:
-    liquibase:
-    enabled:
-    true change-log: classpath:db/changelog/changelog-analysis.xml
-  threads:
+port: 8083
+spring:
+  liquibase:
+  enabled: true
+  change-log: classpath:db/changelog/changelog-analysis.xml
+threads:
   virtual:
   enabled: true
 
-  application:
-    name: analysis-service
+application:
+  name: analysis-service
 
-    datasource:
+datasource:
       url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:analysis_db}
       username: ${DB_USER:analysis_user}
       password: ${DB_PASSWORD:analysis_pass}
       driver-class-name: org.postgresql.Driver
-  jpa:
+jpa:
     hibernate:
       ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
 
-  kafka:
+kafka:
     bootstrap-servers: localhost:9092
     consumer:
       group-id: analysis-group
@@ -37,7 +37,7 @@ server:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
-  ai:
+ai:
     vectorstore:
       pgvector:
         initialize-schema: true
@@ -59,7 +59,7 @@ server:
         # или оставить пустым/любым, так как локальный сервер автоматически вызовет ТУ модель, которая сейчас ЗАГРУЖЕНА в интерфейсе LM Studio.
         model: ${LLM_MODEL:loaded-model}
         temperature: 0.3
-  jwt:
+jwt:
     secret: ${JWT_SECRET}
     expiration-ms: 3600000
 

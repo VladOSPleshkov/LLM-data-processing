@@ -17,6 +17,9 @@ public class JwtTokenValidator {
     public JwtTokenValidator(String secret) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
+    public JwtTokenValidator(SecretKey key) {
+        this.key = key;
+    }
 
     public boolean validateToken(String token) {
         try {

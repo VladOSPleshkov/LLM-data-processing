@@ -30,9 +30,9 @@ services:
       - "8081:8081"
     environment:
       - SERVER_PORT=8081
-      - APP_DATASOURCE_AUTH_JDBC_URL=jdbc:postgresql://auth-postgres:5432/${AUTH_DB_NAME}
-      - APP_DATASOURCE_AUTH_USERNAME=${AUTH_DB_USER}
-      - APP_DATASOURCE_AUTH_PASSWORD=${AUTH_DB_PASS}
+      - SPRING_DATASOURCE_AUTH_JDBC_URL=jdbc:postgresql://auth-postgres:5432/${AUTH_DB_NAME}
+      - SPRING_DATASOURCE_AUTH_USERNAME=${AUTH_DB_USER}
+      - SPRING_DATASOURCE_AUTH_PASSWORD=${AUTH_DB_PASS}
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - JWT_SECRET=${JWT_SECRET}
     depends_on:
@@ -49,9 +49,9 @@ services:
       - "8082:8082"
     environment:
       - SERVER_PORT=8082
-      - APP_DATASOURCE_REVIEW_JDBC_URL=jdbc:postgresql://review-postgres:5432/${REVIEW_DB_NAME}
-      - APP_DATASOURCE_REVIEW_USERNAME=${REVIEW_DB_USER}
-      - APP_DATASOURCE_REVIEW_PASSWORD=${REVIEW_DB_PASS}
+      - SPRING_DATASOURCE_REVIEW_JDBC_URL=jdbc:postgresql://review-postgres:5432/${REVIEW_DB_NAME}
+      - SPRING_DATASOURCE_REVIEW_USERNAME=${REVIEW_DB_USER}
+      - SPRING_DATASOURCE_REVIEW_PASSWORD=${REVIEW_DB_PASS}
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - JWT_SECRET=${JWT_SECRET}
     depends_on:
@@ -76,7 +76,7 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
 #      - SPRING_AI_OPENAI_API_KEY=${LLM_API_KEY}
 #      - SPRING_AI_OPENAI_BASE_URL=${LLM_BASE_URL:https://groq.com}
-      - LLM_BASE_URL=http://docker.internal
+      - LLM_BASE_URL=http://docker.internal:1234/v1
       - LLM_API_KEY=lm-studio
       - LLM_MODEL=loaded-model
       - JWT_SECRET=${JWT_SECRET}

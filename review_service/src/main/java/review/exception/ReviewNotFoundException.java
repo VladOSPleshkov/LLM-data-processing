@@ -1,8 +1,10 @@
 package review.exception;
 
+import com.shared.exception.EntityNotFoundException;
+
 import java.util.UUID;
 
-public class ReviewNotFoundException extends RuntimeException {
+public class ReviewNotFoundException extends EntityNotFoundException {
     public ReviewNotFoundException(String message) {
         super(message);
     }

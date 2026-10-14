@@ -11,4 +11,5 @@ public interface ITokenBlacklistService {
     List<RefreshTokenBlacklistDto> getAll();
     RefreshTokenBlacklistDto update(UUID id, UpdateBlacklistTokenRequest request);
     boolean delete(UUID id);
+    boolean isTokenBlacklisted(String token);
 }

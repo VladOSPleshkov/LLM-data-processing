@@ -1,11 +1,9 @@
 package com.shared.dto.auth;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.List;
 
 public record AuthRequest(
         @JsonProperty("username") String username,
         @JsonProperty("password") String password,
-        @JsonProperty("email") String email,
-        @JsonProperty("roles") List<String> roles
+        @JsonProperty("email") String email
 ) {}

@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.12</version>
+        <version>3.4.3</version>
         <relativePath/>
     </parent>
     <groupId>com.example</groupId>
@@ -137,7 +137,7 @@
 
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-maven-plugin</artifactId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring-boot.version}</version>
                 </plugin>
             </plugins>
@@ -148,7 +148,7 @@
         <repository>
             <id>spring-milestones</id>
             <name>Spring Milestones</name>
-            <url>https://spring.io</url>
+            <url>https://spring.io/milestone</url>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
