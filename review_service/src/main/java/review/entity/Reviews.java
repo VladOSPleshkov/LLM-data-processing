@@ -22,6 +22,8 @@ import lombok.Builder;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.AccessLevel;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -56,7 +58,8 @@ public class Reviews {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @Column(nullable = false)
+    @JdbcTypeCode(SqlTypes.SMALLINT)
+    @Column(name = "rating", nullable = false)
     private Integer rating;
 
     @Column(name = "created_at", nullable = false)

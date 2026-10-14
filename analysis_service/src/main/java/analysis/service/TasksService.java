@@ -58,11 +58,6 @@ public class TasksService implements ITasksService {
 
         try {
             FilterExpressionBuilder fb = new FilterExpressionBuilder();
-            //var filterExpression = fb.eq("brandName", task.getBrandName()).build();
-
-//            SearchRequest searchRequest = SearchRequest.query(task.getQuery())
-//                    .withTopK(task.getTopK())
-//                    .withFilterExpression(filterExpression);
 
             List<Document> relevantDocs = vectorStore.similaritySearch(
                     SearchRequest.builder()
@@ -84,7 +79,6 @@ public class TasksService implements ITasksService {
 
             ChatClient chatClient = chatClientBuilder.build();
 
-// 2. Объединяем логику: изолируем контекст отзывов в XML-теги и разделяем системные роли
             String finalContextReviews = contextReviews;
             ChatResponse response = chatClient.prompt()
                     .system(String.format(

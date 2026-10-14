@@ -74,7 +74,7 @@ services:
       - SPRING_DATASOURCE_USERNAME=${ANALYSIS_DB_USER}
       - SPRING_DATASOURCE_PASSWORD=${ANALYSIS_DB_PASS}
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-#      - SPRING_AI_OPENAI_API_KEY=${LLM_API_KEY}
+      - SPRING_AI_OPENAI_API_KEY=${LLM_API_KEY}
 #      - SPRING_AI_OPENAI_BASE_URL=${LLM_BASE_URL:https://groq.com}
       - LLM_BASE_URL=http://docker.internal:1234/v1
       - LLM_API_KEY=lm-studio
@@ -105,6 +105,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   auth-liquibase:
     image: liquibase/liquibase:4.25.1
@@ -139,6 +140,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   review-liquibase:
     image: liquibase/liquibase:4.25.1
@@ -173,6 +175,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   analysis-liquibase:
     image: liquibase/liquibase:4.25.1

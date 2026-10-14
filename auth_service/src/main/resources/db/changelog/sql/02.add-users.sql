@@ -3,7 +3,7 @@ INSERT INTO users (id, password_hash, username, email,
     ('e1000000-0000-0000-0000-000000000001',
      'kcsubj-0001-0001-0001-000000000001',
      'ivan.petrov',
-     'ivan.petrov@company.ru',
+         'ivan.petrov@company.ru',
      '2024-01-15 08:00:00'),
 
     ('e1000000-0000-0000-0000-000000000002',
