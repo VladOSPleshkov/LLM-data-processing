@@ -3,6 +3,7 @@ package review.controller;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
 import com.shared.dto.review.ReviewImportRow;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,10 +16,8 @@ import review.service.ReviewImportService;
 
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 @Slf4j
 @RestController
@@ -41,47 +40,53 @@ public class ReviewImportController {
 
         try {
             if (filename != null && filename.endsWith(".json")) {
-                // 1. Парсинг JSON-файла
                 rows = objectMapper.readValue(file.getInputStream(), new TypeReference<List<ReviewImportRow>>() {});
             } else if (filename != null && filename.endsWith(".csv")) {
-                // 2. Парсинг CSV-файла (Ожидаемый порядок колонок: brand, categories(через запятую), content, rating, author, source)
-                try (Reader reader = new InputStreamReader(file.getInputStream());
-                     CSVReader csvReader = new CSVReader(reader)) {
+                try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8);
+                     CSVReader csvReader = new CSVReaderBuilder(reader).withSkipLines(1).build()) {
 
-                    List<String[]> allRows = csvReader.readAll();
-                    // Пропускаем заголовок (первую строчку)
-                    for (int i = 1; i < allRows.size(); i++) {
-                        String[] data = allRows.get(i);
-                        List<String> categories = Arrays.stream(data[1].split(","))
+                    String[] data;
+                    while ((data = csvReader.readNext()) != null) {
+                        if (data.length < 6 || data[0].isBlank()) {
+                            continue; // Пропускаем некорректные или пустые строки
+                        }
+
+                        List<String> categories = (data[1] == null || data[1].isBlank())
+                                ? List.of()
+                                : Arrays.stream(data[1].split(","))
                                 .map(String::trim)
+                                .filter(s -> !s.isEmpty())
                                 .toList();
 
+                        int rating = 5;
+                        try {
+                            rating = (int) Math.round(Double.parseDouble(data[3].trim()));
+                        } catch (Exception ignored) {}
+
                         rows.add(new ReviewImportRow(
-                                data[0], // brand_name
-                                categories, // category_names
-                                data[2], // content
-                                Integer.parseInt(data[3]), // rating
-                                data[4], // author_name
-                                data[5]  // source
+                                data[0].trim(),
+                                categories,
+                                data[2].trim(),
+                                rating,
+                                data[4].trim(),
+                                data[5].trim()
                         ));
                     }
                 }
             } else {
-                return ResponseEntity.badRequest().body(Map.of("error", "Неподдерживаемый формат файла. Разрешены только .json и .csv"));
+                return ResponseEntity.badRequest().body(Map.of("error", "Разрешены только файлы .json и .csv"));
             }
 
-            // 3. Передаем распарсенные строки в сервис для сохранения и отправки в Kafka
             int processedCount = reviewImportService.bulkProcess(rows);
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Файл успешно принят в обработку",
                     "imported_count", processedCount
             ));
 
         } catch (Exception e) {
-            log.error("Ошибка при импорте файла отзыва", e);
-            return ResponseEntity.status(500).body(Map.of("error", "Сбой парсинга файла: " + e.getMessage()));
+            log.error("Ошибка при импорте файла отзывов", e);
+            return ResponseEntity.badRequest().body(Map.of("error", "Сбой обработки файла: " + e.getMessage()));
         }
     }
 }

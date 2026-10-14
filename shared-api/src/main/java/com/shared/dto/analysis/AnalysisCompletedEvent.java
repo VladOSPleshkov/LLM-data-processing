@@ -5,7 +5,7 @@ import java.util.UUID;
 public record AnalysisCompletedEvent(
         UUID taskId,
         UUID brandId,
-        String brandName,
+        //String brandName,
         String status,
         String result,
         String errorMessage,

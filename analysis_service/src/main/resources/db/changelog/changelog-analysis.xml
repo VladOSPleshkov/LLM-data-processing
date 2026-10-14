@@ -46,5 +46,8 @@
                  relativeToChangelogFile="true"
                  path="sql/06.create_token_usage_indexes.sql"/>
     </changeSet>
+    <changeSet id="analysis-00-create-vector-extension" author="Vlad Pleshkov">
+        <sql>CREATE EXTENSION IF NOT EXISTS vector;</sql>
+    </changeSet>
 
 </databaseChangeLog>

@@ -142,8 +142,16 @@ public class TasksService implements ITasksService {
             task.setUpdatedAt(LocalDateTime.now());
             tasksDao.save(task);
 
-            // 5. Отправляем событие о завершении анализа в Kafka для других микросервисов
-            kafkaTemplate.send("analysis-results", task.getId().toString(), task.getResult());
+            // Отправляем строго типизированный DTO-объект, ожидаемый слушателем review_service
+            AnalysisCompletedEvent event = new AnalysisCompletedEvent(
+                    task.getId(),
+                    task.getBrandId(),
+                    task.getStatus().name(),
+                    task.getResult(),
+                    task.getErrorMessage(),
+                    task.getCompletedAt()!= null ? task.getCompletedAt() : LocalDateTime.now()
+            );
+            kafkaTemplate.send("analysis-results", task.getId().toString(), event);
         }
         return toDto(task);
     }

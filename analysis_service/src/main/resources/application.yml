@@ -42,22 +42,22 @@ kafka:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
-    ai:
-      vectorstore:
-        pgvector:
-          initialize-schema: true
-          index-type: HNSW
-          distance-type: COSINE_DISTANCE
-          dimensions: 1536
-      openai:
-        # Заглушка ключа для прохождения внутренней валидации Spring AI
-        api-key: ${LLM_API_KEY:lm-studio-dummy-key}
+ai:
+  vectorstore:
+    pgvector:
+      initialize-schema: true
+      index-type: HNSW
+      distance-type: COSINE_DISTANCE
+      dimensions: 1536
+  openai:
+    # Заглушка ключа для прохождения внутренней валидации Spring AI
+    api-key: ${LLM_API_KEY:lm-studio-dummy-key}
 
-        base-url: ${LLM_BASE_URL:http://docker.internal}
-        chat:
-          options:
-            model: ${LLM_MODEL:loaded-model}
-            temperature: 0.3
+    base-url: ${LLM_BASE_URL:http://docker.internal}
+    chat:
+      options:
+        model: ${LLM_MODEL:loaded-model}
+        temperature: 0.3
 jwt:
     secret: ${JWT_SECRET}
     expiration-ms: 3600000

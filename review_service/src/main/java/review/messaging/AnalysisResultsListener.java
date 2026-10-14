@@ -38,7 +38,7 @@ public class AnalysisResultsListener {
                 .orElseGet(() -> {
                     AnalysisReport newReport = AnalysisReport.builder()
                             .taskId(event.taskId())
-                            .brand(brand) // Привязываем честную связь ManyToOne в 3НФ
+                            .brand(brand)
                             .status(event.status())
                             .result(event.result())
                             .errorMessage(event.errorMessage())

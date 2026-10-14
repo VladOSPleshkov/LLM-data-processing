@@ -18,7 +18,7 @@ public class AnalysisReportDao extends AbstractDao<AnalysisReport, UUID> {
 
     public List<AnalysisReport> findByBrandId(UUID brandId) {
         TypedQuery<AnalysisReport> query = entityManager.createQuery(
-                "SELECT r FROM AnalysisReport r WHERE r.brandId = :brandId ORDER BY r.receivedAt DESC",
+                "SELECT r FROM AnalysisReport r WHERE r.brand.id = :brandId ORDER BY r.receivedAt DESC",
                 AnalysisReport.class);
         query.setParameter("brandId", brandId);
         return query.getResultList();

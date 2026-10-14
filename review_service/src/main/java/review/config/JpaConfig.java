@@ -35,8 +35,8 @@ public class JpaConfig {
                 .build();
     }
 
-    @Bean
-    public PlatformTransactionManager transactionManager(
+    @Bean(name = "reviewTransactionManager")
+    public PlatformTransactionManager reviewTransactionManager(
             @Qualifier("reviewEntityManagerFactory") EntityManagerFactory emf) {
         return new JpaTransactionManager(emf);
     }

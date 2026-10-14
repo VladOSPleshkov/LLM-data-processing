@@ -1,28 +1,29 @@
 server:
-port: 8081
+  port: 8081
+
 spring:
   application:
-  name: auth-service
+    name: auth-service
 
   datasource:
-    url: ${AUTH_DB_URL:jdbc:postgresql://localhost:5433/auth_db}
-    username: ${AUTH_DB_USER:auth_user}
-    password: ${AUTH_DB_PASS:passw}
+    url: ${SPRING_DATASOURCE_AUTH_JDBC_URL:${AUTH_DB_URL:jdbc:postgresql://localhost:5433/auth_db}}
+    username: ${SPRING_DATASOURCE_AUTH_USERNAME:${AUTH_DB_USER:auth_user}}
+    password: ${SPRING_DATASOURCE_AUTH_PASSWORD:${AUTH_DB_PASS:passw}}
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: AuthHikariPool
       maximum-pool-size: 10
-  hikari:
-  pool-name: AuthHikariPool
-  maximum-pool-size: 10
+
   jpa:
     open-in-view: false
-    database-platform:
-    org.hibernate.dialect.PostgreSQLDialect hibernate:
-    ddl-auto: validate # Схема полностью контролируется Liquibase open-in-view: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+
   liquibase:
-  enabled: true
-  change-log: classpath:db/changelog/changelog-auth.xml
+    enabled: true
+    change-log: classpath:db/changelog/changelog-auth.xml
+
 jwt:
   secret: ${JWT_SECRET}
   expiration-ms: 3600000
