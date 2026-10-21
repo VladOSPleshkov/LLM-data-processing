@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <changeSet id="review-service-01-create-brands" author="Vlad Pleshkov">
+        <sqlFile encoding="utf8"
+                 relativeToChangelogFile="true"
+                 path="sql/01.create-brands-table.sql"/>
+    </changeSet>
+
+    <changeSet id="review-service-02-add-brands" author="Vlad Pleshkov">
+        <sqlFile encoding="utf8"
+                 relativeToChangelogFile="true"
+                 path="sql/02.add-brands.sql"/>
+    </changeSet>
+
+    <changeSet id="review-service-03-create-categories" author="Vlad Pleshkov">
+        <sqlFile encoding="utf8"
+                 relativeToChangelogFile="true"
+                 path="sql/03.create-catergories-table.sql"/>
+    </changeSet>
+
+    <changeSet id="review-service-04-add-categories" author="Vlad Pleshkov">
+        <sqlFile encoding="utf8"
+                 relativeToChangelogFile="true"
+                 path="sql/04.add-categories.sql"/>
+    </changeSet>
+
+    <changeSet id="review-service-05-create-reviews" author="Vlad Pleshkov">
+        <sqlFile encoding="utf8"
+                 relativeToChangelogFile="true"
+                 path="sql/05.create-reviews-table.sql"/>
+    </changeSet>
+
+    <changeSet id="review-service-06-add-reviews" author="Vlad Pleshkov">
+        <sqlFile encoding="utf8"
+                 relativeToChangelogFile="true"
+                 path="sql/06.add-reviews.sql"/>
+    </changeSet>
+
+    <changeSet id="review-service-07-create-review-categories" author="Vlad Pleshkov">
+        <sqlFile encoding="utf8"
+                 relativeToChangelogFile="true"
+                 path="sql/07.create-review-categories-table.sql"/>
+    </changeSet>
+
+    <changeSet id="review-service-08-insert-review-categories" author="Vlad Pleshkov">
+        <sqlFile encoding="utf8"
+                 relativeToChangelogFile="true"
+                 path="sql/08.insert-review-categories.sql"/>
+    </changeSet>
+
+
+    <changeSet id="review-service-10-create-brands-index" author="Vlad Pleshkov">
+        <sqlFile encoding="utf8"
+                 relativeToChangelogFile="true"
+                 path="sql/10.create-brands-index.sql"/>
+    </changeSet>
+
+    <changeSet id="review-service-11-create-reviews-indexes" author="Vlad Pleshkov">
+        <sqlFile encoding="utf8"
+                 relativeToChangelogFile="true"
+                 path="sql/11.create-reviews-indexes.sql"/>
+    </changeSet>
+    <changeSet id="analysis-service-09-create-analysis-reports" author="Vlad Pleshkov">
+        <sqlFile encoding="utf8"
+                 relativeToChangelogFile="true"
+                 path="sql/09.create-analysis-reports.sql"/>
+    </changeSet>
+
+</databaseChangeLog>

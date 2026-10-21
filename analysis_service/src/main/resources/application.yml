@@ -1,0 +1,64 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: analysis-service
+  threads:
+    virtual:
+      enabled: true
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:${ANALYSIS_DB_URL:jdbc:postgresql://localhost:5434/analysis_db}}
+    username: ${SPRING_DATASOURCE_USERNAME:${ANALYSIS_DB_USER:analysis_user}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${ANALYSIS_DB_PASS:passw}}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: AnalysisHikariPool
+      maximum-pool-size: 20
+
+  jpa:
+    open-in-view: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/changelog-analysis.xml
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: analysis-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.shared.dto.*"
+        spring.json.value.default.type: com.shared.dto.analysis.ReviewAnalysisEvent
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+  ai:
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 1536
+    openai:
+      api-key: ${SPRING_AI_OPENAI_API_KEY:${LLM_API_KEY:lm-studio-dummy-key}}
+      base-url: ${SPRING_AI_OPENAI_BASE_URL:${LLM_BASE_URL:http://host.docker.internal:1234}}
+      chat:
+        options:
+          model: ${LLM_MODEL:loaded-model}
+          temperature: 0.3
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: 3600000

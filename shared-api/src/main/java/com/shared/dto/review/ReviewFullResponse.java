@@ -15,7 +15,5 @@ public record ReviewFullResponse(
         @JsonProperty("indexed_at") LocalDateTime indexedAt,
         @JsonProperty("author_name") String authorName,
         @JsonProperty("source") String source,
-        @JsonProperty("categories") List<String> categories,
-        @JsonProperty("embedding") float[] embedding
-) {}
+        @JsonProperty("category_names") List<String> categoryNames) {}
 

@@ -1,32 +1,94 @@
 services:
-  app:
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REREPLICATION_FACTOR: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+
+  # ==================== 1. МИКРОСЕРВИС АВТОРИЗАЦИИ ====================
+  auth-service:
     build:
       context: .
-      dockerfile: app-launcher/Dockerfile
+      dockerfile: auth_service/Dockerfile
+    container_name: auth-service
     ports:
-      - "8080:8080"
+      - "8081:8081"
     environment:
-      - AUTH_DB_URL=jdbc:postgresql://auth-postgres:5432/${AUTH_DB_NAME}
-      - AUTH_DB_USER=${AUTH_DB_USER}
-      - AUTH_DB_PASS=${AUTH_DB_PASS}
-
-      - ANALYSIS_DB_URL=jdbc:postgresql://analysis-postgres:5432/${ANALYSIS_DB_NAME}
-      - ANALYSIS_DB_USER=${ANALYSIS_DB_USER}
-      - ANALYSIS_DB_PASS=${ANALYSIS_DB_PASS}
-
-      - REVIEW_DB_URL=jdbc:postgresql://review-postgres:5432/${REVIEW_DB_NAME}
-      - REVIEW_DB_USER=${REVIEW_DB_USER}
-      - REVIEW_DB_PASS=${REVIEW_DB_PASS}
+      - SERVER_PORT=8081
+      - SPRING_DATASOURCE_AUTH_JDBC_URL=jdbc:postgresql://auth-postgres:5432/${AUTH_DB_NAME}
+      - SPRING_DATASOURCE_AUTH_USERNAME=${AUTH_DB_USER}
+      - SPRING_DATASOURCE_AUTH_PASSWORD=${AUTH_DB_PASS}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       auth-liquibase:
         condition: service_completed_successfully
-      analysis-liquibase:
-        condition: service_completed_successfully
+
+  # ==================== 2. МИКРОСЕРВИС ОТЗЫВОВ (ПРИЕМ CSV/JSON) ====================
+  review-service:
+    build:
+      context: .
+      dockerfile: review_service/Dockerfile
+    container_name: review-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SERVER_PORT=8082
+      - SPRING_DATASOURCE_REVIEW_JDBC_URL=jdbc:postgresql://review-postgres:5432/${REVIEW_DB_NAME}
+      - SPRING_DATASOURCE_REVIEW_USERNAME=${REVIEW_DB_USER}
+      - SPRING_DATASOURCE_REVIEW_PASSWORD=${REVIEW_DB_PASS}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
       review-liquibase:
         condition: service_completed_successfully
+      kafka:
+        condition: service_started
 
-  # ==================== AUTH ====================
+  # ==================== 3. МИКРОСЕРВИС ИИ И АНАЛИТИКИ (RAG КОНВЕЙЕР) ====================
+  analysis-service:
+    build:
+      context: .
+      dockerfile: analysis_service/Dockerfile
+    container_name: analysis-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SERVER_PORT=8083
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://analysis-postgres:5432/${ANALYSIS_DB_NAME}
+      - SPRING_DATASOURCE_USERNAME=${ANALYSIS_DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${ANALYSIS_DB_PASS}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - SPRING_AI_OPENAI_API_KEY=${LLM_API_KEY}
+#      - SPRING_AI_OPENAI_BASE_URL=${LLM_BASE_URL:https://groq.com}
+      - LLM_BASE_URL=http://docker.internal:1234/v1
+      - LLM_API_KEY=lm-studio
+      - LLM_MODEL=loaded-model
+      - JWT_SECRET=${JWT_SECRET}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      analysis-liquibase:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_started
 
+  # ==================== БАЗЫ ДАННЫХ И МИГРАЦИИ ====================
   auth-postgres:
     image: postgres:16
     container_name: auth-postgres
@@ -43,6 +105,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   auth-liquibase:
     image: liquibase/liquibase:4.25.1
@@ -51,20 +114,18 @@ services:
       auth-postgres:
         condition: service_healthy
     volumes:
-      - ./app-launcher/src/main/resources:/liquibase/changelog
+      - ./:/liquibase/changelog
     command: >
       --driver=org.postgresql.Driver
       --url=jdbc:postgresql://auth-postgres:5432/${AUTH_DB_NAME}
       --username=${AUTH_DB_USER}
       --password=${AUTH_DB_PASS}
-      --changeLogFile=changelogs/homework-2/auth_service/changelog-auth.xml
+      --changeLogFile=auth_service/src/main/resources/db/changelog/changelog-auth.xml
       --searchPath=/liquibase/changelog
       update
 
-  # ==================== REVIEW ====================
-
   review-postgres:
-    image: pgvector/pgvector:pg16
+    image: postgres:16 # Теперь тут обычный Postgres, pgvector больше НЕ нужен сервису отзывов!
     container_name: review-postgres
     environment:
       POSTGRES_DB: ${REVIEW_DB_NAME}
@@ -79,6 +140,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   review-liquibase:
     image: liquibase/liquibase:4.25.1
@@ -87,20 +149,18 @@ services:
       review-postgres:
         condition: service_healthy
     volumes:
-      - ./app-launcher/src/main/resources:/liquibase/changelog
+      - ./:/liquibase/changelog
     command: >
       --driver=org.postgresql.Driver
       --url=jdbc:postgresql://review-postgres:5432/${REVIEW_DB_NAME}
       --username=${REVIEW_DB_USER}
       --password=${REVIEW_DB_PASS}
-      --changeLogFile=changelogs/homework-2/review_service/changelog-review.xml
+      --changeLogFile=review_service/src/main/resources/db/changelog/changelog-review.xml
       --searchPath=/liquibase/changelog
       update
 
-  # ==================== ANALYSIS ====================
-
   analysis-postgres:
-    image: postgres:16
+    image: pgvector/pgvector:pg16
     container_name: analysis-postgres
     environment:
       POSTGRES_DB: ${ANALYSIS_DB_NAME}
@@ -115,6 +175,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   analysis-liquibase:
     image: liquibase/liquibase:4.25.1
@@ -123,13 +184,13 @@ services:
       analysis-postgres:
         condition: service_healthy
     volumes:
-      - ./app-launcher/src/main/resources:/liquibase/changelog
+      - ./:/liquibase/changelog
     command: >
       --driver=org.postgresql.Driver
       --url=jdbc:postgresql://analysis-postgres:5432/${ANALYSIS_DB_NAME}
       --username=${ANALYSIS_DB_USER}
       --password=${ANALYSIS_DB_PASS}
-      --changeLogFile=changelogs/homework-2/analysis_service/changelog-analysis.xml
+      --changeLogFile=analysis_service/src/main/resources/db/changelog/changelog-analysis.xml
       --searchPath=/liquibase/changelog
       update
 

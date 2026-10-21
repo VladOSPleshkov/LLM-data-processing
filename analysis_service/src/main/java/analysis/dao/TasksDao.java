@@ -16,7 +16,7 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class TasksDao extends AbstractDao<Tasks, UUID> {
 
-    @PersistenceContext(unitName = "analysisUnit")
+    @PersistenceContext
     protected EntityManager entityManager;
 
 

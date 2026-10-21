@@ -12,12 +12,6 @@ import org.mapstruct.Mapping;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Вызывается ИСКЛЮЧИТЕЛЬНО внутри @Transactional-методов сервиса,
- * пока EntityManager/persistence context ещё открыт — иначе обращение
- * к ленивой ассоциации UserRoles.role внутри toRoleInfoDto()
- * выбросит LazyInitializationException.
- */
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 
@@ -29,11 +23,15 @@ public interface UserMapper {
     UserRoleInfoDto toRoleInfoDto(UserRoles userRoles);
 
     default AuthResponse toAuthResponse(User user) {
+        if (user == null) {
+            return null;
+        }
+
         List<String> roleNames = user.getUserRoles() == null
                 ? List.of()
                 : user.getUserRoles().stream()
                 .map(ur -> ur.getRole().getName())
-                .collect(Collectors.toList());
+                .toList();
         return new AuthResponse(user.getId(), user.getUsername(), roleNames);
     }
 }

@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import review.dao.CategoriesDao;
 import review.entity.Categories;
+import review.exception.CategoryAlreadyExistException;
 import review.exception.CategoryNotFound;
 
 import java.time.LocalDateTime;
@@ -41,6 +42,9 @@ public class CategoriesService implements ICategoriesService {
     @Override
     @Transactional("reviewTransactionManager")
     public CategoryDto createCategory(CreateCategoryRequest request) {
+        if (categoriesDao.findByName(request.name()).isPresent()) {
+            throw new CategoryAlreadyExistException(request.name());
+        }
         Categories entity = Categories.builder()
                 .name(request.name())
                 .createdAt(LocalDateTime.now())

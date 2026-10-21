@@ -6,7 +6,12 @@ import java.util.List;
 import java.util.UUID;
 
 public record AuthResponse(
-        @JsonProperty("user_id") UUID userId,
-        @JsonProperty("username") String username,
-        @JsonProperty("roles") List<String> roles
+        @JsonProperty("user_id")
+        UUID userId,
+
+        @JsonProperty("username")
+        String username,
+
+        @JsonProperty("roles")
+        List<String> roles
 ) {}

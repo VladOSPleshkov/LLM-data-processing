@@ -1,11 +1,13 @@
 package auth.controller;
 
+import auth.exception.UserNotFoundException;
 import com.shared.dto.auth.UpdateUserRequest;
 import com.shared.dto.auth.UserDto;
 import com.shared.dto.auth.CreateUserRequest;
 import com.shared.service.IUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -43,18 +45,12 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void>  processDelete(UUID id) {
-        userService.deleteUser(id);
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> processDelete(@PathVariable("id") UUID id) {
+        boolean deleted = userService.deleteUser(id);
+        if (!deleted) {
+            throw new UserNotFoundException(id);
+        }
         return ResponseEntity.noContent().build();
     }
-
-//    @PostMapping("/{id}/roles/{roleName}")
-//    public ResponseEntity<UserDto> assignRole(@PathVariable UUID id, @PathVariable String roleName) {
-//        return ResponseEntity.ok(userService.assignRoleToUser(id, roleName));
-//    }
-//
-//    @DeleteMapping("/{id}/roles/{roleName}")
-//    public ResponseEntity<UserDto> revokeRole(@PathVariable UUID id, @PathVariable String roleName) {
-//        return ResponseEntity.ok(userService.revokeRoleFromUser(id, roleName));
-//    }
 }

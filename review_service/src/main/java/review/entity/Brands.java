@@ -44,7 +44,6 @@ public class Brands {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    /** Обратная сторона ManyToOne в Reviews. Явный FetchType.LAZY. */
     @Builder.Default
     @OneToMany(mappedBy = "brand", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Reviews> reviews = new HashSet<>();

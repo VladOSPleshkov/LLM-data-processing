@@ -5,26 +5,23 @@ import auth.dao.UserDao;
 import auth.entity.RoleNames;
 import auth.entity.Roles;
 import auth.entity.User;
+import auth.exception.UserAlreadyExistsException;
 import auth.exception.UserNotFoundException;
 import auth.mapper.UserMapper;
 import com.shared.dto.auth.AuthRequest;
 import com.shared.dto.auth.AuthResponse;
-import com.shared.exception.EntityNotFoundException;
+import com.shared.dto.auth.LoginRequest;
+import com.shared.dto.auth.RegisterRequest;
 import com.shared.service.IAuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service("authService")
@@ -38,9 +35,9 @@ public class AuthService implements IAuthService {
 
     @Override
     @Transactional
-    public AuthResponse register(AuthRequest request) {
+    public AuthResponse register(RegisterRequest request) {
         if (userDao.findByUsername(request.username()).isPresent()) {
-            throw new UserNotFoundException(request.username());
+            throw new UserAlreadyExistsException(request.username());
         }
 
         User newUser = User.builder()
@@ -50,42 +47,45 @@ public class AuthService implements IAuthService {
                 .registeredAt(LocalDateTime.now())
                 .build();
 
-        // Persist выполняется ВНУТРИ транзакции, открытой TransactionInterceptor'ом
-        // для этого метода (транзакция привязана к authTransactionManager, т.к. он @Primary).
         User savedUser = userDao.save(newUser);
 
-        List<String> requestedRoles = (request.roles() == null || request.roles().isEmpty())
-                ? List.of(RoleNames.ROLE_MANAGER.getValue())
-                : request.roles();
+        String defaultRoleName = RoleNames.ROLE_MANAGER.getValue();
 
-        for (String roleNameStr : requestedRoles) {
-            RoleNames roleName = RoleNames.fromValue(roleNameStr);
-            Roles role = rolesDao.findByName(roleName.getValue())
-                    .orElseGet(() -> rolesDao.save(Roles.builder()
-                            .name(roleName.getValue())
-                            .description("Автоматически создана при регистрации")
-                            .build()));
-            savedUser.addRole(role, savedUser.getId());
-        }
-        // в текущем persistence context, а CascadeType.ALL на User.userRoles
-        // гарантирует persist новых UserRoles при флаше/коммите транзакции.
+        Roles role = rolesDao.findByName(defaultRoleName).orElseGet(() ->
+                rolesDao.save(Roles.builder()
+                        .name(defaultRoleName)
+                        .description("Автоматически создана при регистрации")
+                        .build())
+        );
 
-        log.info("Зарегистрирован новый пользователь: {}", savedUser.getUsername());
+        savedUser.addRole(role, savedUser.getId());
+
+        log.info("Успешно зарегистрирован новый пользователь: {}", savedUser.getUsername());
         return userMapper.toAuthResponse(savedUser);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public AuthResponse login(AuthRequest request) {
+    public AuthResponse login(LoginRequest request) {
         User user = userDao.findByUsername(request.username())
-                .or(() -> request.email() != null ? userDao.findByEmail(request.email()) : Optional.empty())
+                .or(() -> userDao.findByEmail(request.username()))
                 .orElseThrow(() -> new BadCredentialsException("Неверное имя пользователя или пароль"));
 
+        // Проверяем соответствие сырого пароля хэшу из базы данных
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new BadCredentialsException("Неверное имя пользователя или пароль");
         }
+        User userWithRoles = userDao.findByIdWithRolesJoinFetch(user.getId())
+                .orElse(user);
 
-        User userWithRoles = userDao.findByIdWithRolesJoinFetch(user.getId()).orElse(user);
+        log.debug("Пользователь {} успешно прошел проверку пароля", user.getUsername());
         return userMapper.toAuthResponse(userWithRoles);
+    }
+    @Override
+    @Transactional(readOnly = true)
+    public AuthResponse getUserForRefresh(UUID userId) {
+        User user = userDao.findByIdWithRolesJoinFetch(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+        return userMapper.toAuthResponse(user);
     }
 }

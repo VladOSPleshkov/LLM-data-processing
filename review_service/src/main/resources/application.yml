@@ -1,0 +1,48 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: review-service
+  threads:
+    virtual:
+      enabled: true
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: review-analysis-results-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.shared.dto.*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+  datasource:
+    url: ${SPRING_DATASOURCE_REVIEW_JDBC_URL:${REVIEW_DB_URL:jdbc:postgresql://localhost:5435/review_db}}
+    username: ${SPRING_DATASOURCE_REVIEW_USERNAME:${REVIEW_DB_USER:review_user}}
+    password: ${SPRING_DATASOURCE_REVIEW_PASSWORD:${REVIEW_DB_PASS:passw}}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: ReviewHikariPool
+      maximum-pool-size: 15
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/changelog-review.xml
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: 3600000

@@ -22,6 +22,8 @@ import lombok.Builder;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.AccessLevel;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -41,7 +43,6 @@ import java.util.UUID;
         attributeNodes = {
                 @NamedAttributeNode("brand"),
                 @NamedAttributeNode("categories"),
-                @NamedAttributeNode("vectorStore")
         }
 )
 public class Reviews {
@@ -57,7 +58,8 @@ public class Reviews {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @Column(nullable = false)
+    @JdbcTypeCode(SqlTypes.SMALLINT)
+    @Column(name = "rating", nullable = false)
     private Integer rating;
 
     @Column(name = "created_at", nullable = false)
@@ -81,22 +83,6 @@ public class Reviews {
     )
     private Set<Categories> categories = new HashSet<>();
 
-    /** OneToOne, inverse-сторона (владеет VectorStore через FK review_id). */
-    @Setter(AccessLevel.NONE)
-    @OneToOne(mappedBy = "review", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private VectorStore vectorStore;
-
-    public void assignVectorStore(VectorStore vectorStore) {
-        if (vectorStore == null) {
-            if (this.vectorStore != null) {
-                this.vectorStore.setReview(null);
-            }
-            this.vectorStore = null;
-            return;
-        }
-        vectorStore.setReview(this);
-        this.vectorStore = vectorStore;
-    }
 
     public void addCategory(Categories category) {
         this.categories.add(category);

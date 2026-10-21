@@ -1,6 +1,5 @@
 package review.dao;
 
-import com.shared.dao.AbstractDao;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
@@ -26,7 +25,6 @@ public class ReviewsDao extends AbstractReviewDao<Reviews, UUID> {
                 FROM Reviews r
                 LEFT JOIN FETCH r.brand
                 LEFT JOIN FETCH r.categories
-                LEFT JOIN FETCH r.vectorStore
                 WHERE r.id = :id
                 """;
         TypedQuery<Reviews> query = entityManager.createQuery(jpql, Reviews.class);
@@ -40,7 +38,6 @@ public class ReviewsDao extends AbstractReviewDao<Reviews, UUID> {
                 FROM Reviews r
                 LEFT JOIN FETCH r.brand
                 LEFT JOIN FETCH r.categories
-                LEFT JOIN FETCH r.vectorStore
                 """;
         return entityManager.createQuery(jpql, Reviews.class).getResultList();
     }
