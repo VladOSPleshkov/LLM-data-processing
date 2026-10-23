@@ -1,7 +1,6 @@
 package review.service;
 import com.shared.dto.analysis.ReviewAnalysisEvent;
 import com.shared.dto.review.*;
-import com.shared.service.IReviewService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;

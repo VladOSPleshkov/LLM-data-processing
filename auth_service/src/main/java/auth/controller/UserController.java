@@ -4,7 +4,7 @@ import auth.exception.UserNotFoundException;
 import com.shared.dto.auth.UpdateUserRequest;
 import com.shared.dto.auth.UserDto;
 import com.shared.dto.auth.CreateUserRequest;
-import com.shared.service.IUserService;
+import auth.service.IUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

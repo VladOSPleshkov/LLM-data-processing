@@ -47,8 +47,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = authHeader.substring(BEARER_PREFIX.length());
 
             try {
-                // Изменяем логику: валидатор теперь должен выбрасывать исключения наружу,
-                // либо мы проверяем токен напрямую в фильтре
+
                 if (jwtTokenValidator.validateToken(token)) {
                     Claims claims = jwtTokenValidator.getClaims(token);
                     String username = claims.getSubject();
@@ -67,13 +66,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         SecurityContextHolder.getContext().setAuthentication(authentication);
                     }
                 } else {
-                    // Если валидатор вернул false без выброса исключения (сломанная структура)
+                    // Если валидатор вернул false без выброса исключения
                     throw new InvalidTokenException("Предоставленный токен доступа не прошел валидацию подписи");
                 }
             } catch (ExpiredJwtException e) {
-                // Перенаправляем ошибку истекшего токена в RestControllerAdvice
                 resolver.resolveException(request, response, null, new InvalidTokenException("Срок действия JWT токена истек"));
-                return; // Прерываем цепочку фильтров, дальше запрос не идет!
+                return;
             } catch (MalformedJwtException e) {
                 resolver.resolveException(request, response, null, new InvalidTokenException("Невалидная цифровая подпись токена или структура JWT повреждена"));
                 return;

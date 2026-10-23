@@ -11,7 +11,7 @@ import com.shared.dto.auth.RoleDto;
 import com.shared.dto.auth.UpdateRoleRequest;
 import com.shared.exception.BadRequestException;
 import com.shared.exception.EntityNotFoundException;
-import com.shared.service.IRolesService;
+import auth.service.IRolesService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

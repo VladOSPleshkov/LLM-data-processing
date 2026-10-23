@@ -6,7 +6,6 @@ import analysis.entity.Tasks;
 import analysis.entity.TokenUsage;
 import com.shared.dto.analysis.*;
 import com.shared.exception.EntityNotFoundException;
-import com.shared.service.ITasksService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -45,7 +44,7 @@ public class TasksService implements ITasksService {
     @Transactional
     public TaskDto startAnalysis(CreateTaskRequest request) {
         Tasks task = Tasks.builder()
-                .brandId(request.brandId())
+                //.brandId(request.brandId())
                 .brandName(request.brandName())
                 .query(request.query())
                 .status(Status.PROCESSING)
@@ -68,7 +67,7 @@ public class TasksService implements ITasksService {
                             .build()
             );
 
-            // 2. Формирование реального contextReviews
+            // 2. Формирование contextReviews
             String contextReviews = relevantDocs.stream()
                     .map(Document::getText)
                     .collect(Collectors.joining("\n---\n"));
@@ -124,7 +123,7 @@ public class TasksService implements ITasksService {
             task.getTokenUsages().add(tokenUsage);
             task.setResult(llmResult);
             task.setStatus(Status.COMPLETED);
-            task.setTokenUsed((int) (promptTokens + generationTokens));
+            task.setTokenUsed((promptTokens + generationTokens));
             task.setCompletedAt(LocalDateTime.now());
 
 
@@ -136,7 +135,7 @@ public class TasksService implements ITasksService {
             task.setUpdatedAt(LocalDateTime.now());
             tasksDao.save(task);
 
-            // Отправляем строго типизированный DTO-объект, ожидаемый слушателем review_service
+            // Отправляем DTO-объект, ожидаемый слушателем review_service
             AnalysisCompletedEvent event = new AnalysisCompletedEvent(
                     task.getId(),
                     task.getBrandId(),

@@ -39,7 +39,6 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
-                        // Управление аналитическими задачами
                         .requestMatchers("/api/v1/tasks/**").hasAnyRole("MANAGER", "ADMIN")
                         .anyRequest().authenticated()
                 )

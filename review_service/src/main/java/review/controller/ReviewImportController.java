@@ -48,7 +48,7 @@ public class ReviewImportController {
                     String[] data;
                     while ((data = csvReader.readNext()) != null) {
                         if (data.length < 6 || data[0].isBlank()) {
-                            continue; // Пропускаем некорректные или пустые строки
+                            continue;
                         }
 
                         List<String> categories = (data[1] == null || data[1].isBlank())

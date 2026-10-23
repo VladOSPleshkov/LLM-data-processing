@@ -1,4 +1,4 @@
-package com.shared.service;
+package auth.service;
 
 import com.shared.dto.auth.CreateRoleRequest;
 import com.shared.dto.auth.UpdateRoleRequest;

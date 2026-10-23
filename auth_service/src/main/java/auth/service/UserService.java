@@ -9,8 +9,6 @@ import auth.exception.RoleNotFoundException;
 import auth.exception.UserNotFoundException;
 import auth.mapper.UserMapper;
 import com.shared.dto.auth.*;
-import com.shared.exception.EntityNotFoundException;
-import com.shared.service.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

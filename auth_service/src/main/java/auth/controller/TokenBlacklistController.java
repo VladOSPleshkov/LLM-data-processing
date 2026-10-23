@@ -1,16 +1,12 @@
 package auth.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 //import com.shared.CrudController;
 import com.shared.dto.auth.CreateBlacklistTokenRequest;
 import com.shared.dto.auth.RefreshTokenBlacklistDto;
 import com.shared.dto.auth.UpdateBlacklistTokenRequest;
-import com.shared.service.ITokenBlacklistService;
+import auth.service.ITokenBlacklistService;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
-import com.shared.dto.DeleteStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

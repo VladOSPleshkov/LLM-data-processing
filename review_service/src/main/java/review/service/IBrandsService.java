@@ -1,4 +1,4 @@
-package com.shared.service;
+package review.service;
 
 import com.shared.dto.review.BrandDto;
 import com.shared.dto.review.CreateBrandRequest;

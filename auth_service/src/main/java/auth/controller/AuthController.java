@@ -2,9 +2,9 @@ package auth.controller;
 
 import auth.exception.InvalidTokenException;
 import auth.security.JwtTokenIssuer;
+import auth.service.ITokenBlacklistService;
 import com.shared.dto.auth.*;
-import com.shared.service.IAuthService;
-import com.shared.service.ITokenBlacklistService;
+import auth.service.IAuthService;
 import io.jsonwebtoken.Claims;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -65,7 +64,6 @@ public class AuthController {
         try {
             claims = jwtTokenIssuer.parseClaims(request.refreshToken());
         } catch (InvalidTokenException | IllegalArgumentException e) {
-            // Токен уже невалиден/просрочен — цель logout фактически достигнута
             return ResponseEntity.noContent().build();
         }
 

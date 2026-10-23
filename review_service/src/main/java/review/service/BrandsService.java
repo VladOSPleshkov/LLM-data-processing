@@ -4,8 +4,6 @@ package review.service;
 import com.shared.dto.review.BrandDto;
 import com.shared.dto.review.CreateBrandRequest;
 import com.shared.dto.review.UpdateBrandRequest;
-import com.shared.exception.EntityNotFoundException;
-import com.shared.service.IBrandsService;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import review.dao.BrandsDao;

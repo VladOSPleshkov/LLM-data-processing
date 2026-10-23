@@ -3,7 +3,7 @@ package auth.controller;
 import com.shared.dto.auth.CreateRoleRequest;
 import com.shared.dto.auth.RoleDto;
 import com.shared.dto.auth.UpdateRoleRequest;
-import com.shared.service.IRolesService;
+import auth.service.IRolesService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

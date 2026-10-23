@@ -1,14 +1,11 @@
 package auth.service;
 
 import auth.dao.TokenBlacklistDao;
-import auth.dao.TokenBlacklistDao;
 import auth.entity.RefreshTokenBlacklist;
 import auth.exception.TokenBlacklistNotFoundException;
 import com.shared.dto.auth.CreateBlacklistTokenRequest;
 import com.shared.dto.auth.RefreshTokenBlacklistDto;
 import com.shared.dto.auth.UpdateBlacklistTokenRequest;
-import com.shared.exception.EntityNotFoundException;
-import com.shared.service.ITokenBlacklistService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
