@@ -16,14 +16,14 @@ import java.time.LocalDateTime;
 public class AnalysisResultsListener {
 
     private final AnalysisReportDao analysisReportDao;
-    private final review.dao.BrandsDao brandsDao; // Внедряем локальный DAO брендов
+    private final review.dao.BrandsDao brandsDao;
 
     @KafkaListener(topics = "analysis-results", groupId = "review-analysis-results-group")
     @Transactional("reviewTransactionManager")
     public void handleAnalysisCompleted(AnalysisCompletedEvent event) {
         log.info("Получен результат анализа из Kafka. Задача: {}, Статус: {}", event.taskId(), event.status());
 
-        // ЗАЩИТА: Находим локальный бренд в review_db. Если его нет — честная 404 ошибка вместо 500
+        //Находим локальный бренд в review_db. Если его нет — 404
         review.entity.Brands brand = brandsDao.findById(event.brandId())
                 .orElseThrow(() -> new BrandsNotFoundException(event.brandId()));
 

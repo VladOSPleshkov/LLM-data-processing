@@ -11,6 +11,5 @@ public class TokenBlacklistNotFoundException extends EntityNotFoundException {
 
     public TokenBlacklistNotFoundException(UUID id) {
         super("табица не найдена с Id" + id);
-
     }
 }

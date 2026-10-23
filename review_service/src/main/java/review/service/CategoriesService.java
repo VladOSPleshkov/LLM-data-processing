@@ -3,8 +3,6 @@ package review.service;
 import com.shared.dto.review.CategoryDto;
 import com.shared.dto.review.CreateCategoryRequest;
 import com.shared.dto.review.UpdateCategoryRequest;
-import com.shared.exception.EntityNotFoundException;
-import com.shared.service.ICategoriesService;
 import org.springframework.stereotype.Component;
 import review.entity.Categories;
 
@@ -13,22 +11,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import com.shared.dto.review.CategoryDto;
-import com.shared.dto.review.CreateCategoryRequest;
-import com.shared.dto.review.UpdateCategoryRequest;
-import com.shared.exception.EntityNotFoundException;
-import com.shared.service.ICategoriesService;
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import review.dao.CategoriesDao;
-import review.entity.Categories;
 import review.exception.CategoryAlreadyExistException;
 import review.exception.CategoryNotFound;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 
 @Component("categoriesService")
 public class CategoriesService implements ICategoriesService {

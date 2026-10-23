@@ -1,14 +1,11 @@
 package review.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shared.dto.review.CategoryDto;
 import com.shared.dto.review.CreateCategoryRequest;
 import com.shared.dto.review.UpdateCategoryRequest;
-import com.shared.service.ICategoriesService;
+import review.service.ICategoriesService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
-import com.shared.dto.DeleteStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

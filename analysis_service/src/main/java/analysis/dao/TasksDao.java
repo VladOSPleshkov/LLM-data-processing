@@ -18,8 +18,6 @@ public class TasksDao extends AbstractDao<Tasks, UUID> {
 
     @PersistenceContext
     protected EntityManager entityManager;
-
-
     public TasksDao() {
         super(Tasks.class);
     }
@@ -32,7 +30,6 @@ public class TasksDao extends AbstractDao<Tasks, UUID> {
                 .findFirst();
     }
 
-    // Получение всех задач по идентификатору бренда
     public List<Tasks> findByBrandId(UUID brandId) {
         String jpql = "SELECT t FROM Tasks t WHERE t.brandId = :brandId ORDER BY t.createdAt DESC";
         return entityManager.createQuery(jpql, Tasks.class)

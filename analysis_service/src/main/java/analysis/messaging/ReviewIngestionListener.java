@@ -1,5 +1,6 @@
 package analysis.messaging;
 
+import analysis.service.TasksService;
 import com.shared.dto.analysis.ReviewAnalysisEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,7 @@ import java.util.Map;
 public class ReviewIngestionListener {
 
     private final VectorStore vectorStore;
+    private final TasksService tasksService;
 
     @KafkaListener(topics = "review-processing-topic", groupId = "analysis-group")
     public void handleReviewIngested(ReviewAnalysisEvent event) {

@@ -2,6 +2,7 @@ package com.shared.dao;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import lombok.Getter;
 
 import java.io.Serializable;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.Optional;
 
 public abstract class AbstractDao<T, ID extends Serializable> {
 
+    @Getter
     @PersistenceContext
     public EntityManager entityManager;
 
@@ -35,8 +37,6 @@ public abstract class AbstractDao<T, ID extends Serializable> {
         String jpql = "SELECT e FROM " + entityClass.getSimpleName() + " e";
         return entityManager.createQuery(jpql, entityClass).getResultList();
     }
-
-    /** Слияние состояния detached-сущности. */
     public T update(T entity) {
         return entityManager.merge(entity);
     }
@@ -53,10 +53,6 @@ public abstract class AbstractDao<T, ID extends Serializable> {
             return true;
         }
         return false;
-    }
-
-    public EntityManager getEntityManager() {
-        return entityManager;
     }
 
     protected Class<T> getEntityClass() {

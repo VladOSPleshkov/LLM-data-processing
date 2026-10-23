@@ -1,17 +1,12 @@
 package review.controller;
 
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shared.dto.review.BrandDto;
 import com.shared.dto.review.CreateBrandRequest;
-import com.shared.dto.review.UpdateBrandRequest;
-import com.shared.service.IBrandsService;
+import review.service.IBrandsService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
-import com.shared.dto.DeleteStatus;
 import org.springframework.web.bind.annotation.*;
-import review.service.BrandsService;
 
 import java.util.List;
 import java.util.UUID;

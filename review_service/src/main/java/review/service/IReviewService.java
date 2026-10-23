@@ -1,4 +1,4 @@
-package com.shared.service;
+package review.service;
 
 import com.shared.dto.review.AddCategoryToReviewRequest;
 import com.shared.dto.review.CreateReviewRequest;
@@ -16,7 +16,6 @@ public interface IReviewService {
     ReviewFullResponse updateReview(UUID id, UpdateReviewRequest request);
     boolean deleteReview(UUID id);
 
-    // Доп. варианты использования — явное управление many-to-many
     ReviewFullResponse addCategory(AddCategoryToReviewRequest request);
     ReviewFullResponse removeCategory(RemoveCategoryFromReviewRequest request);
 }

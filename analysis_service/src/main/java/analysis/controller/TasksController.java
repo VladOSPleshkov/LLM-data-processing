@@ -3,7 +3,7 @@ package analysis.controller;
 import com.shared.dto.analysis.CreateTaskRequest;
 import com.shared.dto.analysis.TaskDto;
 import com.shared.dto.analysis.UpdateTaskRequest;
-import com.shared.service.ITasksService;
+import analysis.service.ITasksService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 

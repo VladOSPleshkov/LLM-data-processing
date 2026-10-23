@@ -1,8 +1,7 @@
-package com.shared.service;
+package analysis.service;
 
 import com.shared.dto.analysis.CreateTaskRequest;
 import com.shared.dto.analysis.TaskDto;
-import com.shared.dto.analysis.TaskWithUsageResponse;
 import com.shared.dto.analysis.UpdateTaskRequest;
 import java.util.List;
 import java.util.UUID;

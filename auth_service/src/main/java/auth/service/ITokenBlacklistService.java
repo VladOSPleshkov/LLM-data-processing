@@ -1,4 +1,4 @@
-package com.shared.service;
+package auth.service;
 import com.shared.dto.auth.CreateBlacklistTokenRequest;
 import com.shared.dto.auth.RefreshTokenBlacklistDto;
 import com.shared.dto.auth.UpdateBlacklistTokenRequest;

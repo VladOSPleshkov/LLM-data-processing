@@ -1,4 +1,4 @@
-package com.shared.service;
+package review.service;
 import com.shared.dto.review.CategoryDto;
 import com.shared.dto.review.CreateCategoryRequest;
 import com.shared.dto.review.UpdateCategoryRequest;
